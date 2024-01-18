@@ -24,7 +24,7 @@ class SurfaceStatsCollector(object):
         self.use_legacy_method = use_legacy
         self.surface_before = 0
         self.last_timestamp = 0
-        self.data_queue = queue.Queue()
+        self.data_queue = queue.Queue()  # 创建data队列对象，但不知道干啥的
         self.stop_event = threading.Event()
         self.focus_window = None
         self.surfaceview = surfaceview
@@ -103,7 +103,8 @@ class SurfaceStatsCollector(object):
             logger.error('get activity name failed, Please provide SurfaceFlinger --list information to the author')
             logger.info('dumpsys SurfaceFlinger --list info: {}'.format(dumpsys_result))
         return activity_name
-     
+
+     # 明天测试一下这个id
     def get_focus_activity(self):
         activity_name = ''
         activity_line = ''
@@ -215,6 +216,9 @@ class SurfaceStatsCollector(object):
             tempstamp = timestamp[1]
         return jank
 
+    '''
+        计算数据线程
+    '''
     def _calculator_thread(self, start_time):
         global collect_fps
         global collect_jank
@@ -223,7 +227,7 @@ class SurfaceStatsCollector(object):
                 data = self.data_queue.get()
                 if isinstance(data, str) and data == 'Stop':
                     break
-                before = time.time()
+                before = time.time()  # 开始时间？返回当前时间戳
                 if self.use_legacy_method:
                     td = data['timestamp'] - self.surface_before['timestamp']
                     seconds = td.seconds + td.microseconds / 1e6
@@ -255,6 +259,9 @@ class SurfaceStatsCollector(object):
                 if self.fps_queue:
                     self.fps_queue.task_done()
 
+    '''
+        收集数据线程
+    '''
     def _collector_thread(self):
         is_first = True
         while not self.stop_event.is_set():
@@ -263,7 +270,7 @@ class SurfaceStatsCollector(object):
                 if self.use_legacy_method:
                     surface_state = self._get_surface_stats_legacy()
                     if surface_state:
-                        self.data_queue.put(surface_state)
+                        self.data_queue.put(surface_state)  # 存入队列
                 else:
                     timestamps = []
                     refresh_period, new_timestamps = self._get_surfaceflinger_frame_data()
@@ -285,7 +292,7 @@ class SurfaceStatsCollector(object):
                         if self.focus_window != cur_focus_window:
                             self.focus_window = cur_focus_window
                             continue
-                    self.data_queue.put((refresh_period, timestamps, time.time()))
+                    self.data_queue.put((refresh_period, timestamps, time.time())) # 存入队列
                     time_consume = time.time() - before
                     delta_inter = self.frequency - time_consume
                     if delta_inter > 0:
@@ -296,7 +303,7 @@ class SurfaceStatsCollector(object):
                 logger.debug(s)
                 if self.fps_queue:
                     self.fps_queue.task_done()
-        self.data_queue.put(u'Stop')
+        self.data_queue.put(u'Stop') # 放置停止标识
 
     def _clear_surfaceflinger_latency_data(self):
         """Clears the SurfaceFlinger latency data.
