@@ -364,12 +364,12 @@ def getFps():
             case _:
                 deviceId = d.getIdbyDevice(device, platform)
                 fps_monitor = FPS.getObject(pkgName=pkgname, deviceId=deviceId, surfaceview=surfaceview, platform=platform)
-                fps, jank = fps_monitor.getFPS()
-                result = {'status': 1, 'fps': fps, 'jank': jank}
+                fps, jank, bigjank = fps_monitor.getFPS()
+                result = {'status': 1, 'fps': fps, 'jank': jank, 'bigjank' : bigjank}
     except Exception as e:
         logger.error('get fps failed')
         logger.exception(e)
-        result = {'status': 1, 'fps': 0, 'jank': 0, 'first': 0, 'second': 0}
+        result = {'status': 1, 'fps': 0, 'jank': 0, 'bigjank': 0, 'first': 0, 'second': 0}
     return result
 
 @api.route('/apm/battery', methods=['post', 'get'])
@@ -400,12 +400,15 @@ def getGpu():
     """get gpu data"""
     pkgname = method._request(request, 'pkgname')
     device = method._request(request, 'device')
+    platform = method._request(request, 'platform')
+    print(platform)
     try:
-        gpu = GPU(pkgName=pkgname, deviceId=device)
-        final = gpu.getGPU()
+        gpu = GPU(pkgName=pkgname, deviceId=device, platform=platform)
+        final = gpu.getGPU(noLog=True)
+        print(final)
         result = {'status': 1, 'gpu': final}
     except Exception as e:
-        logger.exception(e)
+        logger.exception("get gpu faile")
         result = {'status': 1, 'gpu': 0}
     return result
 
@@ -480,10 +483,12 @@ def exportAndroidHtml():
     scene = method._request(request, 'scene')
     cpu_app = method._request(request, 'cpu_app')
     cpu_sys = method._request(request, 'cpu_sys')
+    gpu = method._request(request, 'gpu')
     mem_total = method._request(request, 'mem_total')
     mem_swap = method._request(request, 'mem_swap')
     fps = method._request(request, 'fps')
     jank = method._request(request, 'jank')
+    bigjank = method._request(request, 'bigjank')
     level = method._request(request, 'level')
     temperature = method._request(request, 'temperature')
     net_send = method._request(request, 'net_send')
@@ -492,10 +497,12 @@ def exportAndroidHtml():
         summary_dict = {}
         summary_dict['cpu_app'] = cpu_app
         summary_dict['cpu_sys'] = cpu_sys
+        summary_dict['gpu'] = gpu
         summary_dict['mem_total'] = mem_total
         summary_dict['mem_swap'] = mem_swap
         summary_dict['fps'] = fps
         summary_dict['jank'] = jank
+        summary_dict['bigjank'] = bigjank
         summary_dict['level'] = level
         summary_dict['tem'] = temperature
         summary_dict['net_send'] = net_send
@@ -664,8 +671,8 @@ def apmCollect():
                 result = {'status': 1, 'upflow': data[0], 'downflow': data[1]}
             case Target.FPS:
                 fps_monitor = FPS(pkgName=pkgname, deviceId=deviceid, platform=platform)
-                fps, jank = fps_monitor.getFPS(noLog=True)
-                result = {'status': 1, 'fps': fps, 'jank': jank}
+                fps, jank, bigjank = fps_monitor.getFPS(noLog=True)
+                result = {'status': 1, 'fps': fps, 'jank': jank, 'bigjank' : bigjank}
             case Target.Battery:
                 battery_monitor = Battery(deviceId=deviceid)
                 final = battery_monitor.getBattery(noLog=True)
@@ -674,12 +681,12 @@ def apmCollect():
                 else:
                     result = {'status': 1, 'temperature': final[0], 'current': final[1], 'voltage': final[2], 'power': final[3]}
             case Target.GPU:
-                if platform == Platform.iOS:
-                    gpu = GPU(pkgname=pkgname)
-                    final = gpu.getGPU()
+                gpu = GPU(pkgname=pkgname, deviceId=deviceid, platform=platform)
+                final = gpu.getGPU(noLog=True)
+                if final != None:
                     result = {'status': 1, 'gpu': final}
                 else:
-                    result = {'status': 0, 'msg': 'not support android'}
+                    result = {'status': 0, 'msg': 'can not get gpu'}
             case _:
                 result = {'status': 0, 'msg': 'no this target'}
     except Exception as e:

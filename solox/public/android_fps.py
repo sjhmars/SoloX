@@ -8,11 +8,13 @@ import traceback
 from logzero import logger
 from solox.public.adb import adb
 from solox.public.common import Devices
+from solox.public.base.monitor import Monitor
 
 d = Devices()
 
 collect_fps = 0
 collect_jank = 0
+collect_bigjank = 0
 
 
 class SurfaceStatsCollector(object):
@@ -58,7 +60,6 @@ class SurfaceStatsCollector(object):
                 self.fps_queue.task_done()
 
     def get_surfaceview(self):
-        activity_name = ''
         activity_line = ''
         try:
             dumpsys_result = adb.shell(cmd='dumpsys SurfaceFlinger --list | {} {}'.format(d.filterType(), self.package_name), deviceId=self.device)
@@ -66,17 +67,19 @@ class SurfaceStatsCollector(object):
             for line in dumpsys_result_list:
                 if line.startswith('SurfaceView') and line.find(self.package_name) != -1:
                     activity_line = line.strip()
-                    return activity_line
+                    # activity_list.append(activity_line)
+                    if line.startswith('SurfaceView') and line.find(self.package_name) != -1 and line.find('BLAST') != -1:
+                        activity_line = line.strip()
+                        # print(activity_line)
+                        return activity_line
+            # print(activity_line)
+            return activity_line
 
-            activity_name = dumpsys_result_list[len(dumpsys_result_list) - 1]
-            if not activity_name.__contains__(self.package_name):
-                logger.error('get activity name failed, Please provide SurfaceFlinger --list information to the author')
-                logger.info('dumpsys SurfaceFlinger --list info: {}'.format(dumpsys_result))
         except Exception:
             traceback.print_exc()
             logger.error('get activity name failed, Please provide SurfaceFlinger --list information to the author')
             logger.info('dumpsys SurfaceFlinger --list info: {}'.format(dumpsys_result))
-        return activity_name            
+        pass
      
     def get_surfaceview_activity(self):
         activity_name = ''
@@ -156,31 +159,36 @@ class SurfaceStatsCollector(object):
         if frame_count == 0:
             fps = 0
             jank = 0
+            bigjank = 0
         elif frame_count == 1:
             fps = 1
             jank = 0
+            bigjank = 0
         elif frame_count == 2 or frame_count == 3 or frame_count == 4:
-            seconds = timestamps[-1][1] - timestamps[0][1]
+            seconds = timestamps[-1][0] - timestamps[0][0]
             if seconds > 0:
                 fps = int(round((frame_count - 1) / seconds))
-                jank = self._calculate_janky(timestamps)
+                jank= self._calculate_janky(timestamps)
             else:
                 fps = 1
                 jank = 0
+                bigjank = 0
         else:
-            seconds = timestamps[-1][1] - timestamps[0][1]
+            seconds = timestamps[-1][0] - timestamps[0][0]
             if seconds > 0:
                 fps = int(round((frame_count - 1) / seconds))
-                jank = self._calculate_jankey_new(timestamps)
+                jank,bigjank = self._calculate_jankey_new(timestamps)
             else:
                 fps = 1
                 jank = 0
-        return fps, jank
+        return fps, jank, bigjank
 
     def _calculate_jankey_new(self, timestamps):
-        twofilmstamp = 83.3 / 1000.0
+        twofilmstamp = 1000.0 /24.0 * 2.0
+        threefilmstamp = 1000.0 / 24.0 * 3.0
         tempstamp = 0
         jank = 0
+        bigjank = 0
         for index, timestamp in enumerate(timestamps):
             if (index == 0) or (index == 1) or (index == 2) or (index == 3):
                 if tempstamp == 0:
@@ -190,18 +198,28 @@ class SurfaceStatsCollector(object):
                 if costtime > self.jank_threshold:
                     jank = jank + 1
                 tempstamp = timestamp[1]
-            elif index > 3:
-                currentstamp = timestamps[index][1]
-                lastonestamp = timestamps[index - 1][1]
-                lasttwostamp = timestamps[index - 2][1]
-                lastthreestamp = timestamps[index - 3][1]
-                lastfourstamp = timestamps[index - 4][1]
-                tempframetime = ((lastthreestamp - lastfourstamp) + (lasttwostamp - lastthreestamp) + (
-                        lastonestamp - lasttwostamp)) / 3 * 2
-                currentframetime = currentstamp - lastonestamp
-                if (currentframetime > tempframetime) and (currentframetime > twofilmstamp):
-                    jank = jank + 1
-        return jank
+            elif index >= 4:
+                if timestamps[index][0] - timestamps[index - 1][0] > sum([
+                    timestamps[index - 1][0] - timestamps[index - 2][0],
+                    timestamps[index - 2][0] - timestamps[index - 3][0],
+                    timestamps[index - 3][0] - timestamps[index - 4][0],
+                ]) / 3 * 2:
+                    if timestamps[index][0] - timestamps[index - 1][0] > threefilmstamp /1000:
+                        bigjank = bigjank + 1
+                    elif timestamps[index][0] - timestamps[index - 1][0] > twofilmstamp /1000:
+                        jank = jank + 1
+                # currentstamp = timestamps[index][1]
+                # lastonestamp = timestamps[index - 1][1]
+                # lasttwostamp = timestamps[index - 2][1]
+                # lastthreestamp = timestamps[index - 3][1]
+                # lastfourstamp = timestamps[index - 4][1]
+                # tempframetime = ((lastthreestamp - lastfourstamp) + (lasttwostamp - lastthreestamp) + (
+                #         lastonestamp - lasttwostamp)) / 3 * 2
+                # currentframetime = currentstamp - lastonestamp
+                # if (currentframetime > tempframetime) and (currentframetime > twofilmstamp/1000):
+                #     jank = jank + 1
+        # print(jank, bigjank)
+        return jank,bigjank
 
     def _calculate_janky(self, timestamps):
         tempstamp = 0
@@ -222,9 +240,11 @@ class SurfaceStatsCollector(object):
     def _calculator_thread(self, start_time):
         global collect_fps
         global collect_jank
+        global collect_bigjank
         while True:
             try:
                 data = self.data_queue.get()
+                # print(data)
                 if isinstance(data, str) and data == 'Stop':
                     break
                 before = time.time()  # 开始时间？返回当前时间戳
@@ -244,10 +264,11 @@ class SurfaceStatsCollector(object):
                     timestamps = data[1]
                     collect_time = data[2]
                     # fps,jank = self._calculate_results(refresh_period, timestamps)
-                    fps, jank = self._calculate_results_new(refresh_period, timestamps)
+                    fps, jank, bigjank = self._calculate_results_new(refresh_period, timestamps)
                     # logger.debug('FPS:%2s Jank:%s'%(fps,jank))
                     collect_fps = fps
                     collect_jank = jank
+                    collect_bigjank = bigjank
                 time_consume = time.time() - before
                 delta_inter = self.frequency - time_consume
                 if delta_inter > 0:
@@ -292,7 +313,7 @@ class SurfaceStatsCollector(object):
                         if self.focus_window != cur_focus_window:
                             self.focus_window = cur_focus_window
                             continue
-                    self.data_queue.put((refresh_period, timestamps, time.time())) # 存入队列
+                    self.data_queue.put((refresh_period, timestamps, time.time()))
                     time_consume = time.time() - before
                     delta_inter = self.frequency - time_consume
                     if delta_inter > 0:
@@ -379,10 +400,10 @@ class SurfaceStatsCollector(object):
         nanoseconds_per_second = 1e9
         pending_fence_timestamp = (1 << 63) - 1
         if self.surfaceview is not True:
-            results = adb.shell(
-                cmd='dumpsys SurfaceFlinger --latency %s' % self.focus_window, deviceId=self.device)
-            results = results.replace("\r\n", "\n").splitlines()
-            refresh_period = int(results[0]) / nanoseconds_per_second
+            # results = adb.shell(
+            #     cmd='dumpsys SurfaceFlinger --latency %s' % self.focus_window, deviceId=self.device)
+            # results = results.replace("\r\n", "\n").splitlines()
+            # refresh_period = int(results[0]) / nanoseconds_per_second
             results = adb.shell(cmd='dumpsys gfxinfo %s framestats' % self.package_name, deviceId=self.device)
             results = results.replace("\r\n", "\n").splitlines()
             if not len(results):
@@ -417,14 +438,18 @@ class SurfaceStatsCollector(object):
         else:
             # self.focus_window = self.get_surfaceview_activity()
             self.focus_window = self.get_surfaceview()
+            # com.sanqi.odin.weekly/com.natively.app.MainUnityActivity
             results = adb.shell(
                 cmd='dumpsys SurfaceFlinger --latency \\"%s\\"' % self.focus_window, deviceId=self.device)
+            # print(results)
             results = results.replace("\r\n", "\n").splitlines()
+            # print(results)
             if len(results) <= 1 or int(results[-2].split()[0]) ==0:
                 self.focus_window = self.get_surfaceview_activity()
                 results = adb.shell(
                 cmd='dumpsys SurfaceFlinger --latency \\"%s\\"' % self.focus_window, deviceId=self.device)
                 results = results.replace("\r\n", "\n").splitlines()
+
             if not len(results):
                 return (None, None)
             if not results[0].isdigit():
@@ -448,6 +473,7 @@ class SurfaceStatsCollector(object):
                     continue
                 timestamp = [_timestamp / nanoseconds_per_second for _timestamp in timestamp]
                 timestamps.append(timestamp)
+
         return (refresh_period, timestamps)
 
     def _get_surface_stats_legacy(self):
@@ -470,25 +496,6 @@ class SurfaceStatsCollector(object):
             cur_surface = int(match.group(1), 16)
             return {'page_flip_count': cur_surface, 'timestamp': timestamp}
         return None
-
-
-class Monitor(object):
-    def __init__(self, **kwargs):
-        self.config = kwargs
-        self.matched_data = {}
-
-    def start(self):
-        logger.warn("请在%s类中实现start方法" % type(self))
-
-    def clear(self):
-        self.matched_data = {}
-
-    def stop(self):
-        logger.warning("请在%s类中实现stop方法" % type(self))
-
-    def save(self):
-        logger.warning("请在%s类中实现save方法" % type(self))
-
 
 class TimeUtils(object):
     UnderLineFormatter = "%Y_%m_%d_%H_%M_%S"
@@ -521,8 +528,9 @@ class FPSMonitor(Monitor):
     def stop(self):
         global collect_fps
         global collect_jank
+        global collect_bigjank
         self.fpscollector.stop()
-        return collect_fps, collect_jank
+        return collect_fps, collect_jank, collect_bigjank
 
     def save(self):
         pass

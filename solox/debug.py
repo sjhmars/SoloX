@@ -98,11 +98,11 @@ def open_url(host: str, port: int):
         print(f.renderText("SOLOX {}".format(__version__)))
         flag = status(host, port)
     webbrowser.open('http://{}:{}/?platform=Android&lan=en'.format(host, port), new=2)
-    logger.info('Running on http://{}:{}/?platform=Android&lan=en (Press CTRL+C to quit)'.format(host, port))
+    logger.info('Running on http://{}:{}/?platform=Android&lan=cn (Press CTRL+C to quit)'.format(host, port))
 
 
 def start(host: str, port: int):
-    logger.info('Running on http://{}:{}/?platform=Android&lan=en (Press CTRL+C to quit)'.format(host, port))
+    logger.info('Running on http://{}:{}/?platform=Android&lan=cn (Press CTRL+C to quit)'.format(host, port))
     socketio.run(app, host=host, debug=False, port=port)
 
 def main(host=ip(), port=50003):

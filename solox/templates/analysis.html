@@ -505,7 +505,7 @@
             <div id="chart-networkdata"></div>
         </div>
     </div>
-    {% if platform == 'iOS' %}
+    {% if platform == 'iOS' or platform == 'Android' %}
     <div class="card gpu-card mt-3">
         <div class="card-header">
             <div class='card-title'>{% if lan == 'cn' %} GPU使用率 (%) {% else %} GPU Usage (%) {% endif %}</div>
@@ -581,15 +581,13 @@
 
     $(document).ready(function() {
         initCpuCharts()
+        initGpuCharts()
         initMemoryCharts()
         initFpsCharts()
         initBatteryCharts()
         initNetworkCharts()
         if(platform == 'Android'){
             initMemoryDetailCharts()
-        }
-        if(platform == 'iOS'){
-            initGpuCharts()
         }
     });
     
@@ -835,6 +833,9 @@
                     },{
                         name: 'jank',
                         data: data['jank']
+                    },{
+                        name: 'bigjank',
+                        data: data['bigjank']
                     }])
                 }else{
                     fps_chart.updateSeries([{

@@ -236,7 +236,7 @@ class File:
     def export_excel(self, platform, scene):
         logger.info('Exporting excel ...')
         android_log_file_list = ['cpu_app','cpu_sys','mem_total','mem_native','mem_dalvik',
-                                 'battery_level', 'battery_tem','upflow','downflow','fps']
+                                 'battery_level', 'battery_tem','upflow','downflow','fps','gpu']
         ios_log_file_list = ['cpu_app','cpu_sys', 'mem_total', 'battery_tem', 'battery_current', 
                              'battery_voltage', 'battery_power','upflow','downflow','fps','gpu']
         log_file_list = android_log_file_list if platform == 'Android' else ios_log_file_list
@@ -273,12 +273,14 @@ class File:
         with open(os.path.join(self.report_dir, scene, 'report.html'),'w+') as fout:
             html_content = template.render(cpu_app=summary['cpu_app'],cpu_sys=summary['cpu_sys'],
                                            mem_total=summary['mem_total'],mem_swap=summary['mem_swap'],
-                                           fps=summary['fps'],jank=summary['jank'],level=summary['level'],
+                                           fps=summary['fps'],jank=summary['jank'],bigjank=summary['bigjank'],
+                                           level=summary['level'],
                                            tem=summary['tem'],net_send=summary['net_send'],
                                            net_recv=summary['net_recv'],cpu_charts=summary['cpu_charts'],
                                            mem_charts=summary['mem_charts'],net_charts=summary['net_charts'],
                                            battery_charts=summary['battery_charts'],fps_charts=summary['fps_charts'],
-                                           jank_charts=summary['jank_charts'],mem_detail_charts=summary['mem_detail_charts'])
+                                           jank_charts=summary['jank_charts'],bigjank_charts=summary['bigjank_charts'],
+                                           mem_detail_charts=summary['mem_detail_charts'],gpu_charts=summary['gpu_charts'])
             
             fout.write(html_content)
         html_path = os.path.join(self.report_dir, scene, 'report.html')    
@@ -519,9 +521,10 @@ class File:
         targetDic['fps'] = self.readLog(scene=scene, filename='fps.log')[0]
         if platform == Platform.Android:
             targetDic['jank'] = self.readLog(scene=scene, filename='jank.log')[0]
-            result = {'status': 1, 'fps': targetDic['fps'], 'jank': targetDic['jank']}
+            targetDic['bigjank'] = self.readLog(scene=scene, filename='bigjank.log')[0]
+            result = {'status': 1, 'fps': targetDic['fps'], 'jank': targetDic['jank'], 'bigjank': targetDic['bigjank']}
         else:
-            result = {'status': 1, 'fps': targetDic['fps']}     
+            result = {'status': 1, 'fps': targetDic['fps'], 'bigjank': targetDic['bigjank']}
         return result
 
     def getFpsLogCompare(self, platform, scene1, scene2):
@@ -565,8 +568,13 @@ class File:
             cpuAppRate = f'{round(sum(cpuAppData) / len(cpuAppData), 2)}%'
             cpuSystemRate = f'{round(sum(cpuSystemData) / len(cpuSystemData), 2)}%'
         else:
-            cpuAppRate, cpuSystemRate = 0, 0    
+            cpuAppRate, cpuSystemRate = 0, 0
 
+        gpuData = self.readLog(scene=scene, filename='gpu.log')[1]
+        if gpuData.__len__() > 0:
+            gpu = round(sum(gpuData) / len(gpuData), 2)
+        else:
+            gpu = 0
         batteryLevelData = self.readLog(scene=scene, filename=f'battery_level.log')[1]
         batteryTemlData = self.readLog(scene=scene, filename=f'battery_tem.log')[1]
         if batteryLevelData.__len__() > 0 and batteryTemlData.__len__() > 0:
@@ -587,11 +595,13 @@ class File:
 
         fpsData = self.readLog(scene=scene, filename=f'fps.log')[1]
         jankData = self.readLog(scene=scene, filename=f'jank.log')[1]
+        bigjankData = self.readLog(scene=scene, filename=f'bingjank.log')[1]
         if fpsData.__len__() > 0:
             fpsAvg = f'{int(sum(fpsData) / len(fpsData))}HZ/s'
             jankAvg = f'{int(sum(jankData))}'
+            bigjankAvg = f'{int(sum(bigjankData))}'
         else:
-            fpsAvg, jankAvg = 0, 0    
+            fpsAvg, jankAvg, bigjankData = 0, 0, 0
 
         if os.path.exists(os.path.join(self.report_dir,scene,'end_net.json')):
             f_pre = open(os.path.join(self.report_dir,scene,'pre_net.json'))
@@ -608,16 +618,19 @@ class File:
         apm_dict = dict()
         apm_dict['cpuAppRate'] = cpuAppRate
         apm_dict['cpuSystemRate'] = cpuSystemRate
+        apm_dict['gpu'] = gpu
         apm_dict['totalPassAvg'] = totalPassAvg
         apm_dict['swapPassAvg'] = swapPassAvg
         apm_dict['fps'] = fpsAvg
         apm_dict['jank'] = jankAvg
+        apm_dict['bigjank'] = bigjankAvg
         apm_dict['flow_send'] = flowSend
         apm_dict['flow_recv'] = flowRecv
         apm_dict['batteryLevel'] = batteryLevel
         apm_dict['batteryTeml'] = batteryTeml
         apm_dict['mem_detail_flag'] = mem_detail_flag
-        
+    
+
         return apm_dict
 
     def _setiOSPerfs(self, scene):
@@ -629,7 +642,11 @@ class File:
             cpuSystemRate = f'{round(sum(cpuSystemData) / len(cpuSystemData), 2)}%'
         else:
             cpuAppRate, cpuSystemRate = 0, 0
-
+        gpuData = self.readLog(scene=scene, filename='gpu.log')[1]
+        if gpuData.__len__() > 0:
+            gpu = round(sum(gpuData) / len(gpuData), 2)
+        else:
+            gpu = 0
         totalPassData = self.readLog(scene=scene, filename='mem_total.log')[1]
         if totalPassData.__len__() > 0:
             totalPassAvg = f'{round(sum(totalPassData) / len(totalPassData), 2)}MB'
@@ -662,30 +679,28 @@ class File:
         else:
             batteryTeml,  batteryCurrent , batteryVoltage, batteryPower = 0, 0, 0, 0 
 
-        gpuData = self.readLog(scene=scene, filename='gpu.log')[1]
-        if gpuData.__len__() > 0:
-            gpu = round(sum(gpuData) / len(gpuData), 2)
-        else:
-            gpu = 0    
 
         apm_dict = dict()
         apm_dict['cpuAppRate'] = cpuAppRate
         apm_dict['cpuSystemRate'] = cpuSystemRate
+        apm_dict['gpu'] = gpu
         apm_dict['totalPassAvg'] = totalPassAvg
         apm_dict['nativePassAvg'] = 0
         apm_dict['dalvikPassAvg'] = 0
         apm_dict['fps'] = fpsAvg
         apm_dict['jank'] = 0
+        apm_dict['bigjank'] = 0
         apm_dict['flow_send'] = flowSend
         apm_dict['flow_recv'] = flowRecv
         apm_dict['batteryTeml'] = batteryTeml
         apm_dict['batteryCurrent'] = batteryCurrent
         apm_dict['batteryVoltage'] = batteryVoltage
         apm_dict['batteryPower'] = batteryPower
-        apm_dict['gpu'] = gpu
+
         
         return apm_dict
 
+    # todolist 增加PK模式下的GPU数据的比对
     def _setpkPerfs(self, scene):
         """Aggregate APM data for pk model"""
         cpuAppData1 = self.readLog(scene=scene, filename='cpu_app1.log')[1]

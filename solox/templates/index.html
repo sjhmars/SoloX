@@ -180,7 +180,7 @@ SoloX - Application Performance Monitoring
                                 <svg t="1702629971672" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="29513" width="320" height="320"><path d="M385 228V124c0-19.3 15.7-35 35-35h184c19.3 0 35 15.7 35 35v104H385z" fill="#8F8D94" p-id="29514"></path><path d="M604 114c5.5 0 10 4.5 10 10v79H410v-79c0-5.5 4.5-10 10-10h184m0-50H420c-33.1 0-60 26.9-60 60v129h304V124c0-33.1-26.9-60-60-60z" fill="#504D59" p-id="29515"></path><path d="M410 139h203.5v21H410z" fill="#6F6D75" p-id="29516"></path><path d="M262 935c-35.8 0-65-29.2-65-65V250c0-35.8 29.2-65 65-65h500c35.8 0 65 29.2 65 65v620c0 35.8-29.2 65-65 65H262z" fill="#8BEF99" p-id="29517"></path><path d="M762 210c10.6 0 20.6 4.2 28.2 11.8 7.6 7.6 11.8 17.6 11.8 28.2v620c0 10.6-4.2 20.6-11.8 28.2-7.6 7.6-17.6 11.8-28.2 11.8H262c-10.6 0-20.6-4.2-28.2-11.8-7.6-7.6-11.8-17.6-11.8-28.2V250c0-10.6 4.2-20.6 11.8-28.2S251.4 210 262 210h500m0-50H262c-49.5 0-90 40.5-90 90v620c0 49.5 40.5 90 90 90h500c49.5 0 90-40.5 90-90V250c0-49.5-40.5-90-90-90z" fill="#504D59" p-id="29518"></path><path d="M762 210h-26.4v460.6c0 77.2-62.8 140-140 140H541l151.4-239.5-166-43L470 351.7l-140.9 272 137 65.5 21.2 121.5H222V870c0 22.1 17.9 40 40 40h500c22.1 0 40-17.9 40-40V250c0-22.1-17.9-40-40-40z" fill="#6DC674" p-id="29519"></path><path d="M517.3 656.4l-156-54.1 108.8-227.6 35.7 165.4 154 41.1-144.1 226.1z" fill="#FFCE00" p-id="29520"></path><path d="M464.7 420.8l24.5 113.5 3.9 17.9 17.7 4.7 125.4 33.4-105 164.7 0.9-87.6 0.2-21.6-20.4-7.1-130-45.1 82.8-172.8m10.8-92.2L340.5 611l161.7 56.1-2.1 192.5L683.5 572l-165-44-43-199.4z" fill="#504D59" p-id="29521"></path><path d="M197 269v-19c0-35.8 29.2-65 65-65h500c35.8 0 65 29.2 65 65v19H197z" fill="#A9B7AA" p-id="29522"></path><path d="M762 210c10.6 0 20.6 4.2 28.2 11.8 6.1 6.1 10.1 13.9 11.3 22.2h-579c1.3-8.3 5.2-16.1 11.3-22.2 7.6-7.6 17.6-11.8 28.2-11.8h500m0-50H262c-49.5 0-90 40.5-90 90v44h680v-44c0-49.5-40.5-90-90-90z" fill="#504D59" p-id="29523"></path></svg>
                                 {% if lan == 'cn' %} 电池 {% else %} Battery {% endif %}
                             </label>
-                            {% if platform == 'iOS' %}
+                            {% if platform == 'iOS' or platform == 'Android'%}
                             <label class="dropdown-item cursor-pointer"><input class="form-check-input m-0 me-2 cursor-pointer" id="gpu_checkbox" type="checkbox" checked name="gpu"> 
                                 <svg t="1702629555656" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="8114" width="320" height="320"><path d="M809.2 525.5h120.5c13.1 0 23.6-10.6 23.6-23.6 0-13-10.6-23.6-23.6-23.6H809.2c-4.8 0-9.1 1.8-12.8 4.3v-71.5c0-4.9-0.7-9.6-1.4-14.4 4 3.1 8.8 5.3 14.3 5.3h120.5c13.1 0 23.6-10.6 23.6-23.6 0-13-10.6-23.6-23.6-23.6H809.2c-10.4 0-18.9 6.8-22.1 16.1-15.1-32-47.5-54.3-85.2-54.3H409c-52.2 0-94.5 42.3-94.5 94.5v305.3c0 33.1 17 62.1 42.7 78.9-3.7 4.2-6.1 9.5-6.1 15.5v123.6c0 13 10.6 23.6 23.6 23.6 13.1 0 23.6-10.6 23.6-23.6V810.8c0-0.4-0.2-0.7-0.2-1.1 3.6 0.4 7.1 1.1 10.9 1.1h62.6v123.6c0 13 10.6 23.6 23.6 23.6s23.6-10.6 23.6-23.6V810.8H592v123.6c0 13 10.6 23.6 23.6 23.6 13.1 0 23.6-10.6 23.6-23.6V810.8h62.6c3.7 0 7.3-0.7 10.9-1.1 0 0.4-0.2 0.7-0.2 1.1v123.6c0 13 10.6 23.6 23.6 23.6 13.1 0 23.6-10.6 23.6-23.6V810.8c0-6-2.4-11.4-6.1-15.5 14.5-9.5 26-22.9 33.4-38.7 3.2 9.3 11.7 16.1 22.1 16.1h120.5c13.1 0 23.6-10.6 23.6-23.6 0-13-10.6-23.6-23.6-23.6H809.2c-5.5 0-10.3 2.2-14.3 5.3 0.7-4.7 1.4-9.4 1.4-14.4v-71.5c3.7 2.5 8 4.3 12.8 4.3h120.5c13.1 0 23.6-10.6 23.6-23.6 0-13-10.6-23.6-23.6-23.6H809.2c-4.8 0-9.1 1.8-12.8 4.3v-84.9c3.7 2.3 8 4.1 12.8 4.1z" fill="#4DBBF7" p-id="8115"></path><path d="M585 384.4c13 0 23.6 10.6 23.6 23.6v187.8c0 13-10.6 23.6-23.6 23.6H405.4c-13 0-23.6-10.6-23.6-23.6V408c0-13 10.6-23.6 23.6-23.6H585m0-47.2H405.4c-39.1 0-70.9 31.7-70.9 70.9v187.8c0 39.1 31.7 70.9 70.9 70.9H585c39.1 0 70.9-31.7 70.9-70.9V408c-0.1-39.1-31.8-70.8-70.9-70.8z" fill="" p-id="8116"></path><path d="M893 463.8c13.1 0 23.6-10.6 23.6-23.6S906 416.6 893 416.6H776.3v-76.3H893c13.1 0 23.6-10.6 23.6-23.6S906.1 293 893 293H774.8c-6.3-39.1-36.5-70.2-75.3-77.6V107.6c0-13-10.6-23.6-23.6-23.6s-23.6 10.6-23.6 23.6v106h-73.2v-106c0-13-10.6-23.6-23.6-23.6-13.1 0-23.6 10.6-23.6 23.6v106h-73.2v-106c0-13-10.6-23.6-23.6-23.6s-23.6 10.6-23.6 23.6v106h-73.2v-106c0-13-10.6-23.6-23.6-23.6s-23.6 10.6-23.6 23.6v107.8c-38.8 7.4-68.9 38.4-75.2 77.6h-113c-13.1 0-23.6 10.6-23.6 23.6s10.6 23.6 23.6 23.6h111.2v76.3H102.9c-13.1 0-23.6 10.6-23.6 23.6s10.6 23.6 23.6 23.6h111.2V540H102.9c-13.1 0-23.6 10.6-23.6 23.6s10.6 23.6 23.6 23.6h111.2v76.3H102.9c-13.1 0-23.6 10.6-23.6 23.6 0 13 10.6 23.6 23.6 23.6h112.7c6.3 39.1 36.5 70.2 75.2 77.6v107.8c0 13 10.6 23.6 23.6 23.6s23.6-10.6 23.6-23.6v-106h73.2v106c0 13 10.6 23.6 23.6 23.6s23.6-10.6 23.6-23.6v-106h73.2v106c0 13 10.6 23.6 23.6 23.6 13.1 0 23.6-10.6 23.6-23.6v-106H652v106c0 13 10.6 23.6 23.6 23.6s23.6-10.6 23.6-23.6V788.4c38.8-7.4 68.9-38.4 75.3-77.6H893c13.1 0 23.6-10.6 23.6-23.6 0-13-10.6-23.6-23.6-23.6H776.3v-76.3H893c13.1 0 23.6-10.6 23.6-23.6S906 540.1 893 540.1H776.3v-76.3H893zM729.1 695.7c0 26.1-21.2 47.2-47.2 47.2H308.6c-26 0-47.2-21.2-47.2-47.2V308.1c0-26.1 21.2-47.2 47.2-47.2h373.2c26 0 47.2 21.2 47.2 47.2v387.6z" fill="" p-id="8117"></path><path d="M518.1 437.3h33.1v14.5h-33.1z" fill="#FFD939" p-id="8118"></path><path d="M574.8 413.6h-80.3v61.8h80.3v-61.8z" fill="" p-id="8119"></path></svg>
                                 GPU
@@ -263,6 +263,7 @@ SoloX - Application Performance Monitoring
     </div>
     <div class="apm-data mt-1" style="width: 75%;">
         <div id="cpu" class="mb-3 cpu" style="min-width:400px;height:310px"></div>
+        <div id="gpu" class="mb-3 gpu" style="min-width:400px;height:310px"></div>
         {% if platform == 'Android' %}
         <div id="mem_android"  class="mb-3 mem" style="min-width:400px;height:310px"></div>
         <div id="mem_detail"   class="mb-3 mem_detail" style="min-width:400px;height:310px;display: none;"></div>
@@ -272,7 +273,6 @@ SoloX - Application Performance Monitoring
         <div id="mem_ios"  class="mb-3 mem" style="min-width:400px;height:310px"></div>
         <div id="fps_ios" class="mb-3 fps" style="min-width:400px;height:310px"></div>
         <div id="battery_ios" class="mb-3 battery" style="min-width:400px;height:310px"></div>
-        <div id="gpu" class="mb-3 gpu" style="min-width:400px;height:310px"></div>
         {% endif %}
         <div id="network" class="Network-Data mb-3" style="min-width:400px;height:310px"></div>
     </div>
@@ -366,7 +366,7 @@ SoloX - Application Performance Monitoring
 
     function ruteCheck(){
         if(['Android','iOS'].indexOf(platform) === -1 || platform && ['cn','en'].indexOf(lan) === -1 && lan){
-            this.location.href = '/?platform=Android&lan=en';
+            this.location.href = '/?platform=Android&lan=cn';
         }
     }
 
@@ -610,8 +610,10 @@ SoloX - Application Performance Monitoring
             async: true,
             cache: false,
             data:{
+                platform:platform,
                 pkgname:pkgname,
                 device:device
+
             },
             beforeSend: function () {
                window.clearTimeout(timerQ);
@@ -625,7 +627,7 @@ SoloX - Application Performance Monitoring
                             var x = (new Date()).getTime(),
                             y = data['gpu'];
                             series.addPoint([x, y], true, true);
-                            timerQ = setTimeout(getGpu(pkgname, device), 1000);
+                            timerQ = setTimeout(getGpu(pkgname, device, platform), 1000);
                         }catch (e) {}
                     }else{
                         SwalFire('error','Something error',data['msg'],2000);
@@ -915,10 +917,14 @@ SoloX - Application Performance Monitoring
                                 y_fps = data['fps'];
                             seriesFps.addPoint([x_fps, y_fps], true, true);
                             if(platform == 'Android'){
+                                let seriesBigJank = fps_chart.series[2];
                                 let seriesJank = fps_chart.series[1];
-                                let x_jsnk = (new Date()).getTime(),
+                                let x_bigjank = (new Date()).getTime(),
+                                    y_bigjank= data['bigjank'];
+                                let x_jank = (new Date()).getTime(),
                                     y_jank = data['jank'];
-                                seriesJank.addPoint([x_jsnk, y_jank], true, true);
+                                seriesBigJank.addPoint([x_bigjank, y_bigjank], true, true);
+                                seriesJank.addPoint([x_jank, y_jank], true, true);
                             }
                             timerQ = setTimeout(getFps(pkgname,device,fps_switch), 1000);
                         }catch (e) {}
@@ -1009,6 +1015,21 @@ SoloX - Application Performance Monitoring
             return data;
         }())
     },{
+        name : 'total',
+        pointInterval: 120 * 1000,
+        data : (function () {
+            var data = [], time = (new Date()).getTime(), i;
+            for (i = -999; i <= 0; i += 1) {
+                data.push([
+                    time + i * 1000,
+                    Math.round(0)
+                ]);
+            }
+            return data;
+        }())
+    }];
+
+    var seriesGpu = [{
         name : 'total',
         pointInterval: 120 * 1000,
         data : (function () {
@@ -1252,6 +1273,19 @@ SoloX - Application Performance Monitoring
             }
             return data;
         }())
+    },{
+        name : 'bigjank',
+        pointInterval: 120 * 1000,
+        data : (function () {
+            var data = [], time = (new Date()).getTime(), i;
+            for (i = -999; i <= 0; i += 1) {
+                data.push([
+                    time + i * 1000,
+                    Math.round(0)
+                ]);
+            }
+            return data;
+        }())
     }];
 
     var seriesFpsbyiOS =  [{
@@ -1340,6 +1374,7 @@ SoloX - Application Performance Monitoring
                 legend = true;
                 yAxis = yAxis_plot;
                 break;
+
             case 'mem_android':
                 seriesFinal = seriesMem;
                 legend = true;
@@ -1421,15 +1456,13 @@ SoloX - Application Performance Monitoring
     }
 
     function gpuInitialize(){
-        if(platform == 'iOS'){
-            let gpu_chart = chartsInitialize('gpu','GPU Usage (%)');
-            return gpu_chart
-        }
+        let gpu_chart = chartsInitialize('gpu','GPU Usage (%)');
+        return gpu_chart
     }
 
     function fpsInitialize(){
         if(platform === 'Android'){
-            let title = 'FPS(HZ) & Jank(Times)';
+            let title = 'FPS(HZ) & Jank(Times) & BigJank(Times)';
             let fps_chart = chartsInitialize('fps',title);
             return fps_chart
         }else{
@@ -1476,6 +1509,11 @@ SoloX - Application Performance Monitoring
                 break;
             case 'cpu':
                 seriesFinal = seriesCpu;
+                yAxis = yAxis_plot;
+                legend = true;
+                break;
+            case 'gpu':
+                seriesFinal = seriesGpu;
                 yAxis = yAxis_plot;
                 legend = true;
                 break;
@@ -1598,7 +1636,7 @@ SoloX - Application Performance Monitoring
         if(fps_checkbox){
             fpsInitialize();
             if(platform == 'Android'){
-                let title = 'FPS(HZ) & Jank(Times)';
+                let title = 'FPS(HZ) & Jank(Times) & BigJank(Times)';
                 fps_chart = collectPers(device,pkgname,'fps',title,getFps(pkgname,device,fps_switch));
             }else{
                 let title = 'FPS（HZ）';
@@ -1730,9 +1768,7 @@ SoloX - Application Performance Monitoring
             collectNetwork(device,pkgname);
             collectFps(device,pkgname);
             collectBattery(device);
-            if(platform == 'iOS'){
-                collectGpu(device,pkgname);
-            }
+            collectGpu(device,pkgname);
             if(parseInt($('#duration').val()) > 0){
                 var times = parseInt($('#duration').val()) * 60 * 1000
                 setTimeout("stopTask()", times)

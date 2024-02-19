@@ -72,7 +72,7 @@ class CPU(object):
         """get the total cpu usage at a certain time"""
         cmd = 'cat /proc/stat |{} ^cpu'.format(d.filterType())
         result = adb.shell(cmd=cmd, deviceId=self.deviceId)
-        r = re.compile(r'(?<!cpu\d+)')
+        r = re.compile(r'(?<!cpu\d)')
         toks = r.findall(result)
         idleCpu = float(toks[4])
         logger.info(idleCpu)
@@ -394,18 +394,19 @@ class FPS(object):
             monitors = FPSMonitor(device_id=self.deviceId, package_name=self.pkgName, frequency=1,
                                   surfaceview=self.surfaceview, start_time=TimeUtils.getCurrentTimeUnderline())
             monitors.start()
-            fps, jank = monitors.stop()
+            fps, jank, bigjank = monitors.stop()
             if noLog is False:
                 apm_time = datetime.datetime.now().strftime('%H:%M:%S.%f')
                 f.add_log(os.path.join(f.report_dir,'fps.log'), apm_time, fps)
                 f.add_log(os.path.join(f.report_dir,'jank.log'), apm_time, jank)
+                f.add_log(os.path.join(f.report_dir,'bigjank.log'), apm_time, bigjank)
         except Exception as e:
-            fps, jank = 0
+            fps, jank, bigjank = 0
             if len(d.getPid(self.deviceId, self.pkgName)) == 0:
                 logger.error('[FPS] {} : No process found'.format(self.pkgName))
             else:
                 logger.exception(e)        
-        return fps, jank
+        return fps, jank, bigjank
     
     def getiOSFps(self, noLog=False):
         """get iOS Fps"""
@@ -417,22 +418,66 @@ class FPS(object):
         return fps, 0
 
     def getFPS(self, noLog=False):
-        """get fps、jank"""
-        fps, jank = self.getAndroidFps(noLog) if self.platform == Platform.Android else self.getiOSFps(noLog)
-        return fps, jank
+        """get fps、jank、bigjank"""
+        fps, jank, bigjank = self.getAndroidFps(noLog) if self.platform == Platform.Android else self.getiOSFps(noLog)
+        return fps, jank, bigjank
 
 class GPU(object):
-    def __init__(self, pkgName, deviceId):
+    def __init__(self, pkgName, deviceId, platform=Platform.Android):
         self.pkgName = pkgName
         self.deviceId = deviceId
+        self.platform = platform
 
     def getGPU(self, noLog=False):
+        if self.platform == Platform.Android:
+            gpu = self.getAndroidGPU(noLog)
+        else:
+            gpu = self.getIosGPU(noLog)
+        return gpu
+
+
+    def getIosGPU(self, noLog=False):
         apm = iosAPM(self.pkgName, self.deviceId)
         gpu = apm.getPerformance(apm.gpu)
         if noLog is False:
             apm_time = datetime.datetime.now().strftime('%H:%M:%S.%f')
             f.add_log(os.path.join(f.report_dir,'gpu.log'), apm_time, gpu)
         return gpu
+
+    def getAndroidGPU(self, noLog=False):
+        cmd = "cat /sys/class/kgsl/kgsl-3d0/gpubusy"
+        gpu_info = adb.new_shell(cmd=cmd)
+        if len(gpu_info) != 0:
+            # print(gpu_info)
+            res_n = gpu_info.split(" ")
+            for i in range(len(res_n) - 1, -1, -1):
+                if res_n[i] == '':
+                    res_n.pop(i)
+            try:
+                gpu_info = int(res_n[0]) / int(res_n[1]) * 100
+            except:
+                pass
+            logger.info("获取到的gpu信息是：{}".format(gpu_info))
+        else:
+            cmd = "su -c cat /sys/class/kgsl/kgsl-3d0/gpubusy"
+            gpu_info = adb.new_shell(cmd=cmd)
+            # print("su")
+            if len(gpu_info) != 0:
+                # print(gpu_info)
+                res_n = gpu_info.split(" ")
+                for i in range(len(res_n) - 1, -1, -1):
+                    if res_n[i] == '':
+                        res_n.pop(i)
+                try:
+                    gpu_info = int(int(res_n[0]) / int(res_n[1]) * 100)
+                except:
+                    pass
+                logger.info("获取到的gpu信息是：{}".format(gpu_info))
+        if noLog is False:
+            apm_time = datetime.datetime.now().strftime('%H:%M:%S.%f')
+            f.add_log(os.path.join(f.report_dir,'gpu.log'), apm_time, gpu_info)
+        return gpu_info
+
 
 class iosAPM(object):
 
@@ -601,14 +646,14 @@ class AppPerformanceMonitor(initPerformanceService):
         return result
 
     def collectGpu(self):
-        _gpu = GPU(self.pkgName, self.deviceId)
+        _gpu = GPU(self.pkgName, self.deviceId, self.platform)
         result = {}
         while self.get_status() == 'on':
-            if self.platform == Platform.Android:
-                break
-            gpu = _gpu.getGPU(noLog=self.noLog)
-            result = {'gpu': gpu}
+            gpu = _gpu.getGPU(noLog=True)
+            if gpu:
+                result = {'gpu': gpu}
             logger.info(f'gpu: {result}')
+            print(gpu)
             if self.collect_all is False:
                 break
             if self.duration > 0 and time.time() > self.end_time:
@@ -628,6 +673,7 @@ class AppPerformanceMonitor(initPerformanceService):
                 summary_dict = {}
                 summary_dict['cpu_app'] = summary['cpuAppRate']
                 summary_dict['cpu_sys'] = summary['cpuSystemRate']
+                summary_dict['gpu'] = summary['gpu']
                 summary_dict['mem_total'] = summary['totalPassAvg']
                 summary_dict['mem_swap'] = summary['swapPassAvg']
                 summary_dict['fps'] = summary['fps']
@@ -637,6 +683,7 @@ class AppPerformanceMonitor(initPerformanceService):
                 summary_dict['net_send'] = summary['flow_send']
                 summary_dict['net_recv'] = summary['flow_recv']
                 summary_dict['cpu_charts'] = f.getCpuLog(Platform.Android, scene)
+                summary_dict['gpu_charts'] = f.getGpuLog(Platform.Android, scene)
                 summary_dict['mem_charts'] = f.getMemLog(Platform.Android, scene)
                 summary_dict['mem_detail_charts'] = f.getMemDetailLog(Platform.Android, scene)
                 summary_dict['net_charts'] = f.getFlowLog(Platform.Android, scene)
@@ -651,6 +698,7 @@ class AppPerformanceMonitor(initPerformanceService):
                 summary_dict = {}
                 summary_dict['cpu_app'] = summary['cpuAppRate']
                 summary_dict['cpu_sys'] = summary['cpuSystemRate']
+                summary_dict['gpu_charts'] = f.getGpuLog(Platform.iOS, scene)
                 summary_dict['mem_total'] = summary['totalPassAvg']
                 summary_dict['fps'] = summary['fps']
                 summary_dict['current'] = summary['batteryCurrent']
@@ -665,7 +713,6 @@ class AppPerformanceMonitor(initPerformanceService):
                 summary_dict['net_charts'] = f.getFlowLog(Platform.iOS, scene)
                 summary_dict['battery_charts'] = f.getBatteryLog(Platform.iOS, scene)
                 summary_dict['fps_charts'] = f.getFpsLog(Platform.iOS, scene)
-                summary_dict['gpu_charts'] = f.getGpuLog(Platform.iOS, scene)
                 f.make_ios_html(scene=scene, summary=summary_dict)
             case _:
                 raise Exception('platfrom is invalid')
@@ -676,12 +723,12 @@ class AppPerformanceMonitor(initPerformanceService):
             process_num = 8 if self.record else 7
             pool = multiprocessing.Pool(processes=process_num)
             pool.apply_async(self.collectCpu)
+            pool.apply_async(self.collectGpu)
             pool.apply_async(self.collectMemory)
             pool.apply_async(self.collectMemoryDetail)
             pool.apply_async(self.collectBattery)
             pool.apply_async(self.collectFps)
             pool.apply_async(self.collectNetwork)
-            pool.apply_async(self.collectGpu)
             if self.record:
                 pool.apply_async(Scrcpy.start_record, (self.deviceId))
             pool.close()
