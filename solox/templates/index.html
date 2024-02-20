@@ -913,6 +913,7 @@ SoloX - Application Performance Monitoring
                     if(data['status'] == 1){
                         try {
                             let seriesFps = fps_chart.series[0];
+                            <!--x轴获取当前时间作为x轴坐标-->
                             let x_fps = (new Date()).getTime(),
                                 y_fps = data['fps'];
                             seriesFps.addPoint([x_fps, y_fps], true, true);
@@ -926,6 +927,7 @@ SoloX - Application Performance Monitoring
                                 seriesBigJank.addPoint([x_bigjank, y_bigjank], true, true);
                                 seriesJank.addPoint([x_jank, y_jank], true, true);
                             }
+                            <!--设定定时器，1秒后重新获取数据-->
                             timerQ = setTimeout(getFps(pkgname,device,fps_switch), 1000);
                         }catch (e) {}
                     }else{

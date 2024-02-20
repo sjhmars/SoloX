@@ -151,7 +151,7 @@ class Memory(object):
                 m_total = re.search(r'TOTAL PSS:\s*(\d+)', output)
             m_swap = re.search(r'TOTAL SWAP PSS:\s*(\d+)', output)
             if not m_swap:
-                m_swap = re.search(r'TOTAL SWAP (KB):\s*(\d+)', output)
+                m_swap = re.search(r'TOTAL SWAP \(KB\):\s*(\d+)', output)
             totalPass = round(float(float(m_total.group(1))) / 1024, 2)
             swapPass = round(float(float(m_swap.group(1))) / 1024, 2)
         except Exception as e:

@@ -181,6 +181,7 @@ class SurfaceStatsCollector(object):
             else:
                 fps = 1
                 jank = 0
+                bigjank = 0
         return fps, jank, bigjank
 
     def _calculate_jankey_new(self, timestamps):
@@ -439,9 +440,11 @@ class SurfaceStatsCollector(object):
             # self.focus_window = self.get_surfaceview_activity()
             self.focus_window = self.get_surfaceview()
             # com.sanqi.odin.weekly/com.natively.app.MainUnityActivity
-            results = adb.shell(
-                cmd='dumpsys SurfaceFlinger --latency \\"%s\\"' % self.focus_window, deviceId=self.device)
-            # print(results)
+            results = ''
+            if self.focus_window != '':
+                results = adb.shell(
+                    cmd='dumpsys SurfaceFlinger --latency \\"%s\\"' % self.focus_window, deviceId=self.device)
+                # print(results)
             results = results.replace("\r\n", "\n").splitlines()
             # print(results)
             if len(results) <= 1 or int(results[-2].split()[0]) ==0:

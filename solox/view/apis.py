@@ -514,6 +514,7 @@ def exportAndroidHtml():
         summary_dict['battery_charts'] = f.getBatteryLog(Platform.Android, scene)
         summary_dict['fps_charts'] = f.getFpsLog(Platform.Android, scene)['fps']
         summary_dict['jank_charts'] = f.getFpsLog(Platform.Android, scene)['jank']
+        summary_dict['bigjank_charts'] = f.getFpsLog(Platform.Android, scene)['bigjank']
         path = f.make_android_html(scene, summary_dict)
         result = {'status': 1, 'msg':'success', 'path':path}
     except Exception as e:

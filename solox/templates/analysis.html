@@ -183,6 +183,27 @@
                 </div>
             </div>
         </div>
+        <div class="col-sm-6 col-lg-2">
+            <div class="card card-sm">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-auto">
+                            <span class="bg-pink text-white avatar" style="font-size: 0.65rem">
+                                BigJank
+                            </span>
+                        </div>
+                        <div class="col">
+                            <div class="font-weight-medium">
+                                {% if lan == 'cn' %} 大卡顿 {% else %} Bigjank {% endif %}
+                            </div>
+                            <div class="text-muted">
+                                All：{{ apm_data.bigjank }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
         {% endif %}
         {% if platform == 'Android' %}
         <div class="col-sm-6 col-lg-2">
@@ -627,10 +648,11 @@
                 mem_swap:'{{ apm_data.swapPassAvg }}',
                 fps:'{{ apm_data.fps }}',
                 jank:'{{ apm_data.jank }}',
+                bigjank:'{{ apm_data.bigjank }}',
                 level:'{{ apm_data.batteryLevel }}',
                 temperature:'{{ apm_data.batteryTeml }}',
                 net_send:'{{ apm_data.flow_send }}',
-                net_recv:'{{ apm_data.flow_recv }}'
+                net_recv:'{{ apm_data.flow_recv }}',
             },
             beforeSend: function () {
                 SwalLoading('Save Html','Saving html.')

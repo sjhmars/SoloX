@@ -595,7 +595,7 @@ class File:
 
         fpsData = self.readLog(scene=scene, filename=f'fps.log')[1]
         jankData = self.readLog(scene=scene, filename=f'jank.log')[1]
-        bigjankData = self.readLog(scene=scene, filename=f'bingjank.log')[1]
+        bigjankData = self.readLog(scene=scene, filename=f'bigjank.log')[1]
         if fpsData.__len__() > 0:
             fpsAvg = f'{int(sum(fpsData) / len(fpsData))}HZ/s'
             jankAvg = f'{int(sum(jankData))}'
