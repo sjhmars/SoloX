@@ -404,7 +404,7 @@ def getGpu():
     print(platform)
     try:
         gpu = GPU(pkgName=pkgname, deviceId=device, platform=platform)
-        final = gpu.getGPU(noLog=True)
+        final = gpu.getGPU()
         print(final)
         result = {'status': 1, 'gpu': final}
     except Exception as e:

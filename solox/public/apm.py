@@ -445,23 +445,10 @@ class GPU(object):
         return gpu
 
     def getAndroidGPU(self, noLog=False):
-        cmd = "cat /sys/class/kgsl/kgsl-3d0/gpubusy"
-        gpu_info = adb.new_shell(cmd=cmd)
-        if len(gpu_info) != 0:
-            # print(gpu_info)
-            res_n = gpu_info.split(" ")
-            for i in range(len(res_n) - 1, -1, -1):
-                if res_n[i] == '':
-                    res_n.pop(i)
-            try:
-                gpu_info = int(res_n[0]) / int(res_n[1]) * 100
-            except:
-                pass
-            logger.info("获取到的gpu信息是：{}".format(gpu_info))
-        else:
-            cmd = "su -c cat /sys/class/kgsl/kgsl-3d0/gpubusy"
+        try:
+            cmd = "cat /sys/class/kgsl/kgsl-3d0/gpubusy"
             gpu_info = adb.new_shell(cmd=cmd)
-            # print("su")
+            # print(gpu_info)
             if len(gpu_info) != 0:
                 # print(gpu_info)
                 res_n = gpu_info.split(" ")
@@ -469,13 +456,33 @@ class GPU(object):
                     if res_n[i] == '':
                         res_n.pop(i)
                 try:
-                    gpu_info = int(int(res_n[0]) / int(res_n[1]) * 100)
+                    gpu_info = int(res_n[0]) / int(res_n[1]) * 100
                 except:
-                    pass
+                    gpu_info = 0
                 logger.info("获取到的gpu信息是：{}".format(gpu_info))
+            else:
+                cmd = "su -c cat /sys/class/kgsl/kgsl-3d0/gpubusy"
+                gpu_info = adb.new_shell(cmd=cmd)
+                # print(gpu_info)
+                if len(gpu_info) != 0:
+                    # print(gpu_info)
+                    res_n = gpu_info.split(" ")
+                    for i in range(len(res_n) - 1, -1, -1):
+                        if res_n[i] == '':
+                            res_n.pop(i)
+                    try:
+                        gpu_info = int(int(res_n[0]) / int(res_n[1]) * 100)
+                    except:
+                        gpu_info = 0
+                    logger.info("获取到的gpu信息是：{}".format(gpu_info))
+        except Exception as e:
+            gpu_info = 1
+            logger.info("获取到的gpu信息是：{}".format(e))
         if noLog is False:
             apm_time = datetime.datetime.now().strftime('%H:%M:%S.%f')
-            f.add_log(os.path.join(f.report_dir,'gpu.log'), apm_time, gpu_info)
+            # logger.info("获取到的gpu信息是：{}".format(gpu_info))
+            print(gpu_info)
+            f.add_log(os.path.join(f.report_dir, 'gpu.log'), apm_time, gpu_info)
         return gpu_info
 
 

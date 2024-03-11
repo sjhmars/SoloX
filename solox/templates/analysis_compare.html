@@ -165,7 +165,6 @@
                         <td class="text-center">{{ apm_data2.batteryPower }}</td>
                         {% endif %} 
                     </tr>
-                    {% if platform == 'iOS' %}
                     <tr class="bg-light"><th colspan="6" class="subheader">GPU</th></tr>
                     <tr>
                         <td class="text-center subheader" style="width: 20%;">Scene</td>
@@ -179,7 +178,6 @@
                         <td class="text-center">{{ scene2 }}</td>
                         <td class="text-center">{{ apm_data2.gpu }}</td>
                     </tr>
-                    {% endif %}
                 </tbody>
                 <tfoot></tfoot>
           </table>
@@ -283,7 +281,6 @@
             <div id="chart-networkdata-send"></div>
         </div>
     </div>
-    {% if platform == 'iOS' %}
     <div class="card gpu-card mt-3">
         <div class="card-header">
             <div class='card-title'>GPU（%）</div>
@@ -300,7 +297,6 @@
             <div id="chart-gpu"></div>
         </div>
     </div>
-    {% endif %}
 </div>
 {% endblock %}
 
@@ -309,14 +305,12 @@
 
     $(document).ready(function() {
         $('#cpu_loading').click();
+        $('#gpu_loading').click();
         $('#mem_loading').click();
         $('#fps_loading').click();
         $('#battery_loading').click();
         $('#networkdata_send_loading').click();
         $('#networkdata_recv_loading').click();
-        if(platform == 'iOS'){
-            $('#gpu_loading').click();
-        }
     });
 
     function saveHtml(platform, scene){
@@ -434,8 +428,7 @@
                 }
             });
         });
-    if(platform == 'iOS'){
-        var gpu_chart = new ApexCharts(document.querySelector("#chart-gpu"), options('line'));
+    var gpu_chart = new ApexCharts(document.querySelector("#chart-gpu"), options('line'));
         gpu_chart.render();
         $('#gpu_loading').click(function () {
             $.ajax({
@@ -466,7 +459,6 @@
                 }
             });
         });
-    }
 
     var fps_chart = new ApexCharts(document.querySelector("#chart-fps"), options('line'));
     fps_chart.render();
