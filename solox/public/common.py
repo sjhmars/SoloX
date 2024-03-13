@@ -15,6 +15,7 @@ import psutil
 import signal
 import cv2
 from functools import wraps
+from datetime import datetime
 from jinja2 import Environment, FileSystemLoader
 from tidevice._device import Device
 from tidevice import Usbmux
@@ -27,6 +28,7 @@ class Platform:
     Mac = 'MacOS'
     Windows = 'Windows'
 
+
 class Devices:
 
     def __init__(self, platform=Platform.Android):
@@ -37,9 +39,9 @@ class Devices:
         """Execute the command to get the terminal print result"""
         r = os.popen(cmd)
         try:
-            text = r.buffer.read().decode(encoding='gbk').replace('\x1b[0m','').strip()
+            text = r.buffer.read().decode(encoding='gbk').replace('\x1b[0m', '').strip()
         except UnicodeDecodeError:
-            text = r.buffer.read().decode(encoding='utf-8').replace('\x1b[0m','').strip()
+            text = r.buffer.read().decode(encoding='utf-8').replace('\x1b[0m', '').strip()
         finally:
             r.close()
         return text
@@ -64,7 +66,8 @@ class Devices:
         try:
             devices_name = os.popen(f'{self.adb} -s {deviceId} shell getprop ro.product.model').readlines()[0].strip()
         except Exception:
-            devices_name = os.popen(f'{self.adb} -s {deviceId} shell getprop ro.product.model').buffer.readlines()[0].decode("utf-8").strip()
+            devices_name = os.popen(f'{self.adb} -s {deviceId} shell getprop ro.product.model').buffer.readlines()[
+                0].decode("utf-8").strip()
         return devices_name
 
     def getDevices(self):
@@ -83,7 +86,7 @@ class Devices:
         else:
             deviceId = deviceinfo
         return deviceId
-    
+
     def getSdkVersion(self, deviceId):
         version = adb.shell(cmd='getprop ro.build.version.sdk', deviceId=deviceId)
         return version
@@ -94,17 +97,17 @@ class Devices:
             sdkversion = self.getSdkVersion(deviceId)
             if sdkversion and int(sdkversion) < 26:
                 result = os.popen(f"{self.adb} -s {deviceId} shell ps | {self.filterType()} {pkgName}").readlines()
-                processList = ['{}:{}'.format(process.split()[1],process.split()[8]) for process in result]
+                processList = ['{}:{}'.format(process.split()[1], process.split()[8]) for process in result]
             else:
                 result = os.popen(f"{self.adb} -s {deviceId} shell ps -ef | {self.filterType()} {pkgName}").readlines()
-                processList = ['{}:{}'.format(process.split()[1],process.split()[7]) for process in result]
+                processList = ['{}:{}'.format(process.split()[1], process.split()[7]) for process in result]
             for i in range(len(processList)):
                 if processList[i].count(':') == 1:
                     index = processList.index(processList[i])
                     processList.insert(0, processList.pop(index))
                     break
             if len(processList) == 0:
-               logger.warning('{}: no pid found'.format(pkgName))     
+                logger.warning('{}: no pid found'.format(pkgName))
         except Exception as e:
             processList = []
             logger.exception(e)
@@ -132,7 +135,7 @@ class Devices:
     def getDeviceInfoByiOS(self):
         """Get a list of all successfully connected iOS devices"""
         deviceInfo = [udid for udid in Usbmux().device_udid_list()]
-        logger.info('Connected devices: {}'.format(deviceInfo))    
+        logger.info('Connected devices: {}'.format(deviceInfo))
         return deviceInfo
 
     def getPkgnameByiOS(self, udid):
@@ -140,7 +143,7 @@ class Devices:
         d = Device(udid)
         pkgNames = [i.get("CFBundleIdentifier") for i in d.installation.iter_installed(app_type="User")]
         return pkgNames
-    
+
     def get_pc_ip(self):
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -152,7 +155,7 @@ class Devices:
         finally:
             s.close()
         return ip
-    
+
     def get_device_ip(self, deviceId):
         content = os.popen(f"{self.adb} -s {deviceId} shell ip addr show wlan0").read()
         logger.info(content)
@@ -160,10 +163,10 @@ class Devices:
         if math_obj and math_obj.group(1):
             return math_obj.group(1)
         return None
-    
+
     def devicesCheck(self, platform, deviceid=None, pkgname=None):
         """Check the device environment"""
-        match(platform):
+        match (platform):
             case Platform.Android:
                 if len(self.getDeviceIds()) == 0:
                     raise Exception('no devices found')
@@ -173,18 +176,18 @@ class Devices:
                 if len(self.getDeviceInfoByiOS()) == 0:
                     raise Exception('no devices found')
             case _:
-                raise Exception('platform must be Android or iOS')        
-            
+                raise Exception('platform must be Android or iOS')
+
     def getDdeviceDetail(self, deviceId, platform):
         result = dict()
-        match(platform):
+        match (platform):
             case Platform.Android:
                 result['brand'] = adb.shell(cmd='getprop ro.product.brand', deviceId=deviceId)
                 result['name'] = adb.shell(cmd='getprop ro.product.model', deviceId=deviceId)
                 result['version'] = adb.shell(cmd='getprop ro.build.version.release', deviceId=deviceId)
                 result['serialno'] = adb.shell(cmd='getprop ro.serialno', deviceId=deviceId)
                 cmd = f'ip addr show wlan0 | {self.filterType()} link/ether'
-                wifiadr_content = adb.shell(cmd=cmd, deviceId=deviceId)                
+                wifiadr_content = adb.shell(cmd=cmd, deviceId=deviceId)
                 result['wifiadr'] = Method._index(wifiadr_content.split(), 1, '')
             case Platform.iOS:
                 ios_device = Device(udid=deviceId)
@@ -194,13 +197,13 @@ class Devices:
                 result['serialno'] = deviceId
                 result['wifiadr'] = ios_device.get_value("WiFiAddress", no_session=True)
             case _:
-                raise Exception('{} is undefined'.format(platform)) 
+                raise Exception('{} is undefined'.format(platform))
         return result
 
     def getCurrentActivity(self, deviceId):
         result = adb.shell(cmd='dumpsys window | {} mCurrentFocus'.format(self.filterType()), deviceId=deviceId)
         if result.__contains__('mCurrentFocus'):
-            activity = str(result).split(' ')[-1].replace('}','') 
+            activity = str(result).split(' ')[-1].replace('}', '')
             return activity
         else:
             raise Exception('no activity found')
@@ -213,9 +216,10 @@ class Devices:
         try:
             import ios_device
         except ImportError:
-            logger.error('py-ios-devices not found, please run [pip install py-ios-devices]') 
-        result = self.execCmd('pyidevice instruments app_lifecycle -b {}'.format(pkgname))       
-        return result          
+            logger.error('py-ios-devices not found, please run [pip install py-ios-devices]')
+        result = self.execCmd('pyidevice instruments app_lifecycle -b {}'.format(pkgname))
+        return result
+
 
 class File:
 
@@ -230,83 +234,86 @@ class File:
                 filename = os.path.join(self.report_dir, f)
                 if f.split(".")[-1] in ['log', 'json', 'mkv']:
                     os.remove(filename)
-        Scrcpy.stop_record()            
-        logger.info('Clean up useless files success')            
+        Scrcpy.stop_record()
+        logger.info('Clean up useless files success')
 
     def export_excel(self, platform, scene):
         logger.info('Exporting excel ...')
-        android_log_file_list = ['cpu_app','cpu_sys','mem_total','mem_native','mem_dalvik',
-                                 'battery_level', 'battery_tem','upflow','downflow','fps','gpu']
-        ios_log_file_list = ['cpu_app','cpu_sys', 'mem_total', 'battery_tem', 'battery_current', 
-                             'battery_voltage', 'battery_power','upflow','downflow','fps','gpu']
+        android_log_file_list = ['cpu_app', 'cpu_sys', 'mem_total', 'mem_native', 'mem_dalvik',
+                                 'battery_level', 'battery_tem', 'upflow', 'downflow', 'fps', 'gpu']
+        ios_log_file_list = ['cpu_app', 'cpu_sys', 'mem_total', 'battery_tem', 'battery_current',
+                             'battery_voltage', 'battery_power', 'upflow', 'downflow', 'fps', 'gpu']
         log_file_list = android_log_file_list if platform == 'Android' else ios_log_file_list
-        wb = xlwt.Workbook(encoding = 'utf-8')
-       
+        wb = xlwt.Workbook(encoding='utf-8')
+
         k = 1
         for name in log_file_list:
             ws1 = wb.add_sheet(name)
-            ws1.write(0,0,'Time') 
-            ws1.write(0,1,'Value')
-            row = 1 #start row
-            col = 0 #start col
+            ws1.write(0, 0, 'Time')
+            ws1.write(0, 1, 'Value')
+            row = 1  # start row
+            col = 0  # start col
             if os.path.exists(f'{self.report_dir}/{scene}/{name}.log'):
-                f = open(f'{self.report_dir}/{scene}/{name}.log','r',encoding='utf-8')
-                for lines in f: 
+                f = open(f'{self.report_dir}/{scene}/{name}.log', 'r', encoding='utf-8')
+                for lines in f:
                     target = lines.split('=')
                     k += 1
                     for i in range(len(target)):
-                        ws1.write(row, col ,target[i])
+                        ws1.write(row, col, target[i])
                         col += 1
                     row += 1
                     col = 0
-        xls_path = os.path.join(self.report_dir, scene, f'{scene}.xls')            
+        xls_path = os.path.join(self.report_dir, scene, f'{scene}.xls')
         wb.save(xls_path)
         logger.info('Exporting excel success : {}'.format(xls_path))
-        return xls_path   
-    
-    def make_android_html(self, scene, summary : dict):
+        return xls_path
+
+    def make_android_html(self, scene, summary: dict):
         logger.info('Generating HTML ...')
         STATICPATH = os.path.dirname(os.path.realpath(__file__))
         file_loader = FileSystemLoader(os.path.join(STATICPATH, 'report_template'))
         env = Environment(loader=file_loader)
         template = env.get_template('android.html')
-        with open(os.path.join(self.report_dir, scene, 'report.html'),'w+') as fout:
-            html_content = template.render(cpu_app=summary['cpu_app'],cpu_sys=summary['cpu_sys'],
-                                           mem_total=summary['mem_total'],mem_swap=summary['mem_swap'],
-                                           fps=summary['fps'],jank=summary['jank'],bigjank=summary['bigjank'],
+        with open(os.path.join(self.report_dir, scene, 'report.html'), 'w+') as fout:
+            html_content = template.render(cpu_app=summary['cpu_app'], cpu_sys=summary['cpu_sys'],
+                                           mem_total=summary['mem_total'], mem_swap=summary['mem_swap'],
+                                           fps=summary['fps'], jank=summary['jank'], bigjank=summary['bigjank'],
+                                           Stutter=summary["Stutter"],
+                                           maxTotalPass=summary['maxTotalPass'],
                                            level=summary['level'],
-                                           tem=summary['tem'],net_send=summary['net_send'],
-                                           net_recv=summary['net_recv'],cpu_charts=summary['cpu_charts'],
-                                           mem_charts=summary['mem_charts'],net_charts=summary['net_charts'],
-                                           battery_charts=summary['battery_charts'],fps_charts=summary['fps_charts'],
-                                           jank_charts=summary['jank_charts'],bigjank_charts=summary['bigjank_charts'],
-                                           mem_detail_charts=summary['mem_detail_charts'],gpu_charts=summary['gpu_charts'])
-            
+                                           tem=summary['tem'], net_send=summary['net_send'],
+                                           net_recv=summary['net_recv'], cpu_charts=summary['cpu_charts'],
+                                           mem_charts=summary['mem_charts'], net_charts=summary['net_charts'],
+                                           battery_charts=summary['battery_charts'], fps_charts=summary['fps_charts'],
+                                           jank_charts=summary['jank_charts'], bigjank_charts=summary['bigjank_charts'],
+                                           mem_detail_charts=summary['mem_detail_charts'],
+                                           gpu_charts=summary['gpu_charts'])
+
             fout.write(html_content)
-        html_path = os.path.join(self.report_dir, scene, 'report.html')    
-        logger.info('Generating HTML success : {}'.format(html_path))  
+        html_path = os.path.join(self.report_dir, scene, 'report.html')
+        logger.info('Generating HTML success : {}'.format(html_path))
         return html_path
-    
-    def make_ios_html(self, scene, summary : dict):
+
+    def make_ios_html(self, scene, summary: dict):
         logger.info('Generating HTML ...')
         STATICPATH = os.path.dirname(os.path.realpath(__file__))
         file_loader = FileSystemLoader(os.path.join(STATICPATH, 'report_template'))
         env = Environment(loader=file_loader)
         template = env.get_template('ios.html')
-        with open(os.path.join(self.report_dir, scene, 'report.html'),'w+') as fout:
-            html_content = template.render(cpu_app=summary['cpu_app'],cpu_sys=summary['cpu_sys'],gpu=summary['gpu'],
-                                           mem_total=summary['mem_total'],fps=summary['fps'],
-                                           tem=summary['tem'],current=summary['current'],
-                                           voltage=summary['voltage'],power=summary['power'],
-                                           net_send=summary['net_send'],net_recv=summary['net_recv'],
-                                           cpu_charts=summary['cpu_charts'],mem_charts=summary['mem_charts'],
-                                           net_charts=summary['net_charts'],battery_charts=summary['battery_charts'],
-                                           fps_charts=summary['fps_charts'],gpu_charts=summary['gpu_charts'])            
+        with open(os.path.join(self.report_dir, scene, 'report.html'), 'w+') as fout:
+            html_content = template.render(cpu_app=summary['cpu_app'], cpu_sys=summary['cpu_sys'], gpu=summary['gpu'],
+                                           mem_total=summary['mem_total'], fps=summary['fps'],
+                                           tem=summary['tem'], current=summary['current'],
+                                           voltage=summary['voltage'], power=summary['power'],
+                                           net_send=summary['net_send'], net_recv=summary['net_recv'],
+                                           cpu_charts=summary['cpu_charts'], mem_charts=summary['mem_charts'],
+                                           net_charts=summary['net_charts'], battery_charts=summary['battery_charts'],
+                                           fps_charts=summary['fps_charts'], gpu_charts=summary['gpu_charts'])
             fout.write(html_content)
-        html_path = os.path.join(self.report_dir, scene, 'report.html')    
-        logger.info('Generating HTML success : {}'.format(html_path))  
+        html_path = os.path.join(self.report_dir, scene, 'report.html')
+        logger.info('Generating HTML success : {}'.format(html_path))
         return html_path
-  
+
     def filter_secen(self, scene):
         dirs = os.listdir(self.report_dir)
         dir_list = list(reversed(sorted(dirs, key=lambda x: os.path.getmtime(os.path.join(self.report_dir, x)))))
@@ -329,10 +336,10 @@ class File:
         if value >= 0:
             with open(path, 'a+', encoding="utf-8") as file:
                 file.write(f'{log_time}={str(value)}' + '\n')
-    
-    def record_net(self, type, send , recv):
+
+    def record_net(self, type, send, recv):
         net_dict = {}
-        match(type):
+        match (type):
             case 'pre':
                 net_dict['send'] = send
                 net_dict['recv'] = recv
@@ -345,7 +352,7 @@ class File:
                 self.create_file(filename='end_net.json', content=content)
             case _:
                 logger.error('record network data failed')
-    
+
     def make_report(self, app, devices, video, platform=Platform.Android, model='normal'):
         logger.info('Generating test results ...')
         current_time = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
@@ -367,9 +374,9 @@ class File:
         for f in os.listdir(self.report_dir):
             filename = os.path.join(self.report_dir, f)
             if f.split(".")[-1] in ['log', 'json', 'mkv']:
-                shutil.move(filename, report_new_dir)        
+                shutil.move(filename, report_new_dir)
         logger.info('Generating test results success: {}'.format(report_new_dir))
-        return f'apm_{current_time}'        
+        return f'apm_{current_time}'
 
     def instance_type(self, data):
         if isinstance(data, float):
@@ -378,7 +385,7 @@ class File:
             return 'int'
         else:
             return 'int'
-    
+
     def open_file(self, path, mode):
         with open(path, mode) as f:
             for line in f:
@@ -388,8 +395,8 @@ class File:
         """Read apmlog file data"""
         log_data_list = list()
         target_data_list = list()
-        if os.path.exists(os.path.join(self.report_dir,scene,filename)):
-            lines = self.open_file(os.path.join(self.report_dir,scene,filename), "r")
+        if os.path.exists(os.path.join(self.report_dir, scene, filename)):
+            lines = self.open_file(os.path.join(self.report_dir, scene, filename), "r")
             for line in lines:
                 if isinstance(line.split('=')[1].strip(), int):
                     log_data_list.append({
@@ -404,46 +411,46 @@ class File:
                     })
                     target_data_list.append(float(line.split('=')[1].strip()))
         return log_data_list, target_data_list
-        
+
     def getCpuLog(self, platform, scene):
         targetDic = {}
         targetDic['cpuAppData'] = self.readLog(scene=scene, filename='cpu_app.log')[0]
         targetDic['cpuSysData'] = self.readLog(scene=scene, filename='cpu_sys.log')[0]
         result = {'status': 1, 'cpuAppData': targetDic['cpuAppData'], 'cpuSysData': targetDic['cpuSysData']}
         return result
-    
+
     def getCpuLogCompare(self, platform, scene1, scene2):
         targetDic = {}
         targetDic['scene1'] = self.readLog(scene=scene1, filename='cpu_app.log')[0]
         targetDic['scene2'] = self.readLog(scene=scene2, filename='cpu_app.log')[0]
         result = {'status': 1, 'scene1': targetDic['scene1'], 'scene2': targetDic['scene2']}
         return result
-    
+
     def getGpuLog(self, platform, scene):
         targetDic = {}
         targetDic['gpu'] = self.readLog(scene=scene, filename='gpu.log')[0]
         result = {'status': 1, 'gpu': targetDic['gpu']}
         return result
-    
+
     def getGpuLogCompare(self, platform, scene1, scene2):
         targetDic = {}
         targetDic['scene1'] = self.readLog(scene=scene1, filename='gpu.log')[0]
         targetDic['scene2'] = self.readLog(scene=scene2, filename='gpu.log')[0]
         result = {'status': 1, 'scene1': targetDic['scene1'], 'scene2': targetDic['scene2']}
         return result
-    
+
     def getMemLog(self, platform, scene):
         targetDic = {}
         targetDic['memTotalData'] = self.readLog(scene=scene, filename='mem_total.log')[0]
         if platform == Platform.Android:
-            targetDic['memSwapData']  = self.readLog(scene=scene, filename='mem_swap.log')[0]
-            result = {'status': 1, 
-                      'memTotalData': targetDic['memTotalData'], 
+            targetDic['memSwapData'] = self.readLog(scene=scene, filename='mem_swap.log')[0]
+            result = {'status': 1,
+                      'memTotalData': targetDic['memTotalData'],
                       'memSwapData': targetDic['memSwapData']}
         else:
             result = {'status': 1, 'memTotalData': targetDic['memTotalData']}
         return result
-    
+
     def getMemDetailLog(self, platform, scene):
         targetDic = {}
         targetDic['java_heap'] = self.readLog(scene=scene, filename='mem_java_heap.log')[0]
@@ -455,34 +462,34 @@ class File:
         targetDic['system_pss'] = self.readLog(scene=scene, filename='mem_system_pss.log')[0]
         result = {'status': 1, 'memory_detail': targetDic}
         return result
-    
+
     def getMemLogCompare(self, platform, scene1, scene2):
         targetDic = {}
         targetDic['scene1'] = self.readLog(scene=scene1, filename='mem_total.log')[0]
         targetDic['scene2'] = self.readLog(scene=scene2, filename='mem_total.log')[0]
         result = {'status': 1, 'scene1': targetDic['scene1'], 'scene2': targetDic['scene2']}
         return result
-    
+
     def getBatteryLog(self, platform, scene):
         targetDic = {}
         if platform == Platform.Android:
             targetDic['batteryLevel'] = self.readLog(scene=scene, filename='battery_level.log')[0]
             targetDic['batteryTem'] = self.readLog(scene=scene, filename='battery_tem.log')[0]
-            result = {'status': 1, 
-                      'batteryLevel': targetDic['batteryLevel'], 
+            result = {'status': 1,
+                      'batteryLevel': targetDic['batteryLevel'],
                       'batteryTem': targetDic['batteryTem']}
         else:
             targetDic['batteryTem'] = self.readLog(scene=scene, filename='battery_tem.log')[0]
             targetDic['batteryCurrent'] = self.readLog(scene=scene, filename='battery_current.log')[0]
             targetDic['batteryVoltage'] = self.readLog(scene=scene, filename='battery_voltage.log')[0]
             targetDic['batteryPower'] = self.readLog(scene=scene, filename='battery_power.log')[0]
-            result = {'status': 1, 
-                      'batteryTem': targetDic['batteryTem'], 
+            result = {'status': 1,
+                      'batteryTem': targetDic['batteryTem'],
                       'batteryCurrent': targetDic['batteryCurrent'],
-                      'batteryVoltage': targetDic['batteryVoltage'], 
-                      'batteryPower': targetDic['batteryPower']}    
+                      'batteryVoltage': targetDic['batteryVoltage'],
+                      'batteryPower': targetDic['batteryPower']}
         return result
-    
+
     def getBatteryLogCompare(self, platform, scene1, scene2):
         targetDic = {}
         if platform == Platform.Android:
@@ -492,30 +499,30 @@ class File:
         else:
             targetDic['scene1'] = self.readLog(scene=scene1, filename='batteryPower.log')[0]
             targetDic['scene2'] = self.readLog(scene=scene2, filename='batteryPower.log')[0]
-            result = {'status': 1, 'scene1': targetDic['scene1'], 'scene2': targetDic['scene2']}    
+            result = {'status': 1, 'scene1': targetDic['scene1'], 'scene2': targetDic['scene2']}
         return result
-    
+
     def getFlowLog(self, platform, scene):
         targetDic = {}
         targetDic['upFlow'] = self.readLog(scene=scene, filename='upflow.log')[0]
         targetDic['downFlow'] = self.readLog(scene=scene, filename='downflow.log')[0]
         result = {'status': 1, 'upFlow': targetDic['upFlow'], 'downFlow': targetDic['downFlow']}
         return result
-    
+
     def getFlowSendLogCompare(self, platform, scene1, scene2):
         targetDic = {}
         targetDic['scene1'] = self.readLog(scene=scene1, filename='upflow.log')[0]
         targetDic['scene2'] = self.readLog(scene=scene2, filename='upflow.log')[0]
         result = {'status': 1, 'scene1': targetDic['scene1'], 'scene2': targetDic['scene2']}
         return result
-    
+
     def getFlowRecvLogCompare(self, platform, scene1, scene2):
         targetDic = {}
         targetDic['scene1'] = self.readLog(scene=scene1, filename='downflow.log')[0]
         targetDic['scene2'] = self.readLog(scene=scene2, filename='downflow.log')[0]
         result = {'status': 1, 'scene1': targetDic['scene1'], 'scene2': targetDic['scene2']}
         return result
-    
+
     def getFpsLog(self, platform, scene):
         targetDic = {}
         targetDic['fps'] = self.readLog(scene=scene, filename='fps.log')[0]
@@ -533,7 +540,7 @@ class File:
         targetDic['scene2'] = self.readLog(scene=scene2, filename='fps.log')[0]
         result = {'status': 1, 'scene1': targetDic['scene1'], 'scene2': targetDic['scene2']}
         return result
-        
+
     def approximateSize(self, size, a_kilobyte_is_1024_bytes=True):
         '''
         convert a file size to human-readable form.
@@ -556,8 +563,6 @@ class File:
             size /= multiple
             if size < multiple:
                 return '{0:.2f} {1}'.format(size, suffix)
-    
-    
 
     def _setAndroidPerfs(self, scene):
         """Aggregate APM data for Android"""
@@ -581,21 +586,54 @@ class File:
             batteryLevel = f'{batteryLevelData[-1]}%'
             batteryTeml = f'{batteryTemlData[-1]}°C'
         else:
-            batteryLevel, batteryTeml = 0, 0   
-    
+            batteryLevel, batteryTeml = 0, 0
 
         totalPassData = self.readLog(scene=scene, filename=f'mem_total.log')[1]
-        
+        totalPassData.sort()
+        maxTotalPass = totalPassData[totalPassData.__len__()-1]
+
         if totalPassData.__len__() > 0:
             swapPassData = self.readLog(scene=scene, filename=f'mem_swap.log')[1]
             totalPassAvg = f'{round(sum(totalPassData) / len(totalPassData), 2)}MB'
             swapPassAvg = f'{round(sum(swapPassData) / len(swapPassData), 2)}MB'
         else:
-            totalPassAvg, swapPassAvg = 0, 0    
+            totalPassAvg, swapPassAvg = 0, 0
 
         fpsData = self.readLog(scene=scene, filename=f'fps.log')[1]
         jankData = self.readLog(scene=scene, filename=f'jank.log')[1]
         bigjankData = self.readLog(scene=scene, filename=f'bigjank.log')[1]
+        time_date = self.readLog(scene=scene, filename=f'collect_jank_time.log')
+        jank_time_date = time_date[0]
+        if jank_time_date.__len__() > 0:
+
+            first_time_str = jank_time_date[0].get('x')
+            first_time_parts = first_time_str.split('.')
+            first_time_part, microsecond_part = first_time_parts[0], int(first_time_parts[1])
+            today = datetime.today().date()
+            first_time_str = f"{today} {first_time_part}"
+            first_time_obj = time.strptime(first_time_str, '%Y-%m-%d %H:%M:%S')
+            first_time = int(time.mktime(first_time_obj))
+            first_time += microsecond_part / 1e6  # 替换微秒
+
+            last_time_str = jank_time_date[jank_time_date.__len__() - 1].get('x')
+            last_time_parts = last_time_str.split('.')
+            last_time_part, last_microsecond_part = last_time_parts[0], int(last_time_parts[1])
+            last_time_str = f"{today} {last_time_part}"
+            last_time_obj = time.strptime(last_time_str, '%Y-%m-%d %H:%M:%S')
+            last_time = int(time.mktime(last_time_obj))
+            last_time += last_microsecond_part / 1e6  # 替换微秒
+
+
+            all_time = (last_time - first_time) * 1000
+            jank_time_all = int(sum(time_date[1]))
+
+            print(all_time)
+
+            Stutter = jank_time_all / all_time
+            Stutter = "{:.3%}".format(Stutter)
+        else:
+            Stutter = '0.0%'
+        print(Stutter)
         if fpsData.__len__() > 0:
             fpsAvg = f'{int(sum(fpsData) / len(fpsData))}HZ/s'
             jankAvg = f'{int(sum(jankData))}'
@@ -603,18 +641,18 @@ class File:
         else:
             fpsAvg, jankAvg, bigjankData = 0, 0, 0
 
-        if os.path.exists(os.path.join(self.report_dir,scene,'end_net.json')):
-            f_pre = open(os.path.join(self.report_dir,scene,'pre_net.json'))
-            f_end = open(os.path.join(self.report_dir,scene,'end_net.json'))
+        if os.path.exists(os.path.join(self.report_dir, scene, 'end_net.json')):
+            f_pre = open(os.path.join(self.report_dir, scene, 'pre_net.json'))
+            f_end = open(os.path.join(self.report_dir, scene, 'end_net.json'))
             json_pre = json.loads(f_pre.read())
             json_end = json.loads(f_end.read())
             send = json_end['send'] - json_pre['send']
             recv = json_end['recv'] - json_pre['recv']
         else:
-            send, recv = 0, 0    
+            send, recv = 0, 0
         flowSend = f'{round(float(send / 1024), 2)}MB'
         flowRecv = f'{round(float(recv / 1024), 2)}MB'
-        mem_detail_flag = os.path.exists(os.path.join(self.report_dir,scene,'mem_java_heap.log'))
+        mem_detail_flag = os.path.exists(os.path.join(self.report_dir, scene, 'mem_java_heap.log'))
         apm_dict = dict()
         apm_dict['cpuAppRate'] = cpuAppRate
         apm_dict['cpuSystemRate'] = cpuSystemRate
@@ -624,12 +662,13 @@ class File:
         apm_dict['fps'] = fpsAvg
         apm_dict['jank'] = jankAvg
         apm_dict['bigjank'] = bigjankAvg
+        apm_dict['Stutter'] = Stutter
+        apm_dict['maxTotalPass'] = maxTotalPass
         apm_dict['flow_send'] = flowSend
         apm_dict['flow_recv'] = flowRecv
         apm_dict['batteryLevel'] = batteryLevel
         apm_dict['batteryTeml'] = batteryTeml
         apm_dict['mem_detail_flag'] = mem_detail_flag
-    
 
         return apm_dict
 
@@ -665,7 +704,7 @@ class File:
             flowSend = f'{round(float(sum(flowSendData) / 1024), 2)}MB'
             flowRecv = f'{round(float(sum(flowRecvData) / 1024), 2)}MB'
         else:
-            flowSend, flowRecv = 0, 0    
+            flowSend, flowRecv = 0, 0
 
         batteryTemlData = self.readLog(scene=scene, filename='battery_tem.log')[1]
         batteryCurrentData = self.readLog(scene=scene, filename='battery_current.log')[1]
@@ -677,8 +716,7 @@ class File:
             batteryVoltage = int(sum(batteryVoltageData) / len(batteryVoltageData))
             batteryPower = int(sum(batteryPowerData) / len(batteryPowerData))
         else:
-            batteryTeml,  batteryCurrent , batteryVoltage, batteryPower = 0, 0, 0, 0 
-
+            batteryTeml, batteryCurrent, batteryVoltage, batteryPower = 0, 0, 0, 0
 
         apm_dict = dict()
         apm_dict['cpuAppRate'] = cpuAppRate
@@ -697,7 +735,6 @@ class File:
         apm_dict['batteryVoltage'] = batteryVoltage
         apm_dict['batteryPower'] = batteryPower
 
-        
         return apm_dict
 
     # todolist 增加PK模式下的GPU数据的比对
@@ -722,7 +759,7 @@ class File:
         network1 = f'{round(float(sum(networkData1) / 1024), 2)}MB'
         networkData2 = self.readLog(scene=scene, filename='network2.log')[1]
         network2 = f'{round(float(sum(networkData2) / 1024), 2)}MB'
-        
+
         apm_dict = {}
         apm_dict['cpuAppRate1'] = cpuAppRate1
         apm_dict['cpuAppRate2'] = cpuAppRate2
@@ -734,44 +771,52 @@ class File:
         apm_dict['fpsAvg2'] = fpsAvg2
         return apm_dict
 
+
 class Method:
-    
+
     @classmethod
     def _request(cls, request, object):
-        match(request.method):
+        match (request.method):
             case 'POST':
                 return request.form[object]
             case 'GET':
                 return request.args[object]
             case _:
                 raise Exception('request method error')
-    
-    @classmethod   
-    def _setValue(cls, value, default = 0):
+
+    @classmethod
+    def _setValue(cls, value, default=0):
         try:
             result = value
-        except ZeroDivisionError :
+        except ZeroDivisionError:
             result = default
         except IndexError:
-            result = default        
+            result = default
         except Exception:
-            result = default            
+            result = default
         return result
-    
+
     @classmethod
     def _settings(cls, request):
         content = {}
-        content['cpuWarning'] = (0, request.cookies.get('cpuWarning'))[request.cookies.get('cpuWarning') not in [None, 'NaN']]
-        content['memWarning'] = (0, request.cookies.get('memWarning'))[request.cookies.get('memWarning') not in [None, 'NaN']]
-        content['fpsWarning'] = (0, request.cookies.get('fpsWarning'))[request.cookies.get('fpsWarning') not in [None, 'NaN']]
-        content['netdataRecvWarning'] = (0, request.cookies.get('netdataRecvWarning'))[request.cookies.get('netdataRecvWarning') not in [None, 'NaN']]
-        content['netdataSendWarning'] = (0, request.cookies.get('netdataSendWarning'))[request.cookies.get('netdataSendWarning') not in [None, 'NaN']]
-        content['betteryWarning'] = (0, request.cookies.get('betteryWarning'))[request.cookies.get('betteryWarning') not in [None, 'NaN']]
+        content['cpuWarning'] = (0, request.cookies.get('cpuWarning'))[
+            request.cookies.get('cpuWarning') not in [None, 'NaN']]
+        content['memWarning'] = (0, request.cookies.get('memWarning'))[
+            request.cookies.get('memWarning') not in [None, 'NaN']]
+        content['fpsWarning'] = (0, request.cookies.get('fpsWarning'))[
+            request.cookies.get('fpsWarning') not in [None, 'NaN']]
+        content['netdataRecvWarning'] = (0, request.cookies.get('netdataRecvWarning'))[
+            request.cookies.get('netdataRecvWarning') not in [None, 'NaN']]
+        content['netdataSendWarning'] = (0, request.cookies.get('netdataSendWarning'))[
+            request.cookies.get('netdataSendWarning') not in [None, 'NaN']]
+        content['betteryWarning'] = (0, request.cookies.get('betteryWarning'))[
+            request.cookies.get('betteryWarning') not in [None, 'NaN']]
         content['duration'] = (0, request.cookies.get('duration'))[request.cookies.get('duration') not in [None, 'NaN']]
-        content['solox_host'] = ('', request.cookies.get('solox_host'))[request.cookies.get('solox_host') not in [None, 'NaN']]
+        content['solox_host'] = ('', request.cookies.get('solox_host'))[
+            request.cookies.get('solox_host') not in [None, 'NaN']]
         content['host_switch'] = request.cookies.get('host_switch')
         return content
-    
+
     @classmethod
     def _index(cls, target: list, index: int, default: any):
         try:
@@ -789,9 +834,9 @@ class Install:
             return True
         except Exception as e:
             logger.exception(e)
-            return False            
+            return False
 
-    def downloadLink(self,filelink=None, path=None, name=None):
+    def downloadLink(self, filelink=None, path=None, name=None):
         try:
             logger.info('Install link : {}'.format(filelink))
             ssl._create_default_https_context = ssl._create_unverified_context
@@ -804,8 +849,8 @@ class Install:
             with(open(os.path.join(path, name), 'ab')) as f:
                 for chunk in req.iter_content(chunk_size=1024):
                     if chunk:
-                         f.write(chunk)
-                         pbar.update(1024)
+                        f.write(chunk)
+                        pbar.update(1024)
             pbar.close()
             return True
         except Exception as e:
@@ -828,51 +873,51 @@ class Install:
         else:
             return False, result
 
-class Scrcpy:
 
+class Scrcpy:
     STATICPATH = os.path.dirname(os.path.realpath(__file__))
     DEFAULT_SCRCPY_PATH = {
         "64": os.path.join(STATICPATH, "scrcpy", "scrcpy-win64-v2.1.1", "scrcpy.exe"),
         "32": os.path.join(STATICPATH, "scrcpy", "scrcpy-win32-v2.1.1", "scrcpy.exe"),
-        "default":"scrcpy"
+        "default": "scrcpy"
     }
-    
+
     @classmethod
     def scrcpy_path(cls):
         bit = platform.architecture()[0]
         path = cls.DEFAULT_SCRCPY_PATH["default"]
         if platform.system().lower().__contains__('windows'):
             if bit.__contains__('64'):
-                path =  cls.DEFAULT_SCRCPY_PATH["64"]
+                path = cls.DEFAULT_SCRCPY_PATH["64"]
             elif bit.__contains__('32'):
-                path =  cls.DEFAULT_SCRCPY_PATH["32"]
+                path = cls.DEFAULT_SCRCPY_PATH["32"]
         return path
-    
+
     @classmethod
     def start_record(cls, device):
         f = File()
         logger.info('start record screen')
         win_cmd = "start /b {scrcpy_path} -s {deviceId} --no-playback --record={video}".format(
-            scrcpy_path = cls.scrcpy_path(), 
-            deviceId = device, 
-            video = os.path.join(f.report_dir, 'record.mkv')
+            scrcpy_path=cls.scrcpy_path(),
+            deviceId=device,
+            video=os.path.join(f.report_dir, 'record.mkv')
         )
         mac_cmd = "nohup {scrcpy_path} -s {deviceId} --no-playback --record={video} &".format(
-            scrcpy_path = cls.scrcpy_path(), 
-            deviceId = device, 
-            video = os.path.join(f.report_dir, 'record.mkv')
+            scrcpy_path=cls.scrcpy_path(),
+            deviceId=device,
+            video=os.path.join(f.report_dir, 'record.mkv')
         )
         if platform.system().lower().__contains__('windows'):
             result = os.system(win_cmd)
         else:
-            result = os.system(mac_cmd)    
+            result = os.system(mac_cmd)
         if result == 0:
             logger.info("record screen success : {}".format(os.path.join(f.report_dir, 'record.mkv')))
         else:
             logger.error("solox's scrcpy is incompatible with your PC")
-            logger.info("Please install the software yourself : brew install scrcpy")    
+            logger.info("Please install the software yourself : brew install scrcpy")
         return result
-    
+
     @classmethod
     def stop_record(cls):
         logger.info('stop scrcpy process')
@@ -885,17 +930,17 @@ class Scrcpy:
                     logger.info(pid)
         except Exception as e:
             logger.exception(e)
-    
+
     @classmethod
     def cast_screen(cls, device):
         logger.info('start cast screen')
         win_cmd = "start /i {scrcpy_path} -s {deviceId} --stay-awake".format(
-            scrcpy_path = cls.scrcpy_path(), 
-            deviceId = device
+            scrcpy_path=cls.scrcpy_path(),
+            deviceId=device
         )
         mac_cmd = "nohup {scrcpy_path} -s {deviceId} --stay-awake &".format(
-            scrcpy_path = cls.scrcpy_path(), 
-            deviceId = device
+            scrcpy_path=cls.scrcpy_path(),
+            deviceId=device
         )
         if platform.system().lower().__contains__('windows'):
             result = os.system(win_cmd)
@@ -905,18 +950,18 @@ class Scrcpy:
             logger.info("cast screen success")
         else:
             logger.error("solox's scrcpy is incompatible with your PC")
-            logger.info("Please install the software yourself : brew install scrcpy")    
+            logger.info("Please install the software yourself : brew install scrcpy")
         return result
-    
+
     @classmethod
     def play_video(cls, video):
         logger.info('start play video : {}'.format(video))
         cap = cv2.VideoCapture(video)
-        while(cap.isOpened()):
+        while (cap.isOpened()):
             ret, frame = cap.read()
             if ret:
                 gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                cv2.namedWindow("frame", 0)  
+                cv2.namedWindow("frame", 0)
                 cv2.resizeWindow("frame", 430, 900)
                 cv2.imshow('frame', gray)
                 if cv2.waitKey(25) & 0xFF == ord('q') or not cv2.getWindowProperty("frame", cv2.WND_PROP_VISIBLE):

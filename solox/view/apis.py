@@ -489,6 +489,7 @@ def exportAndroidHtml():
     fps = method._request(request, 'fps')
     jank = method._request(request, 'jank')
     bigjank = method._request(request, 'bigjank')
+    Stutter = method._request(request, 'Stutter')
     level = method._request(request, 'level')
     temperature = method._request(request, 'temperature')
     net_send = method._request(request, 'net_send')
@@ -503,6 +504,7 @@ def exportAndroidHtml():
         summary_dict['fps'] = fps
         summary_dict['jank'] = jank
         summary_dict['bigjank'] = bigjank
+        summary_dict['Stutter'] = Stutter
         summary_dict['level'] = level
         summary_dict['tem'] = temperature
         summary_dict['net_send'] = net_send

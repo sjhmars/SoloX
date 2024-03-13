@@ -15,6 +15,8 @@ d = Devices()
 collect_fps = 0
 collect_jank = 0
 collect_bigjank = 0
+collect_jank_time = 0
+last_collect_time = 0
 
 
 class SurfaceStatsCollector(object):
@@ -80,7 +82,7 @@ class SurfaceStatsCollector(object):
             logger.error('get activity name failed, Please provide SurfaceFlinger --list information to the author')
             logger.info('dumpsys SurfaceFlinger --list info: {}'.format(dumpsys_result))
         pass
-     
+
     def get_surfaceview_activity(self):
         activity_name = ''
         activity_line = ''
@@ -154,35 +156,58 @@ class SurfaceStatsCollector(object):
                 jank = 0
         return fps, jank
 
-    def _calculate_results_new(self, refresh_period, timestamps):
+    def _calculate_results_new(self, refresh_period, timestamps, collect_time):
+        global last_collect_time
+        print(last_collect_time, "过去的时间")
+        if last_collect_time == 0:
+             last_collect_time = collect_time
+        print(collect_time, "现在的时间")
         frame_count = len(timestamps)
+        last_time = last_collect_time
+        jank_time = 0
         if frame_count == 0:
             fps = 0
             jank = 0
             bigjank = 0
+            jank_time = 0
         elif frame_count == 1:
             fps = 1
             jank = 0
             bigjank = 0
+            jank_time = 0
         elif frame_count == 2 or frame_count == 3 or frame_count == 4:
             seconds = timestamps[-1][0] - timestamps[0][0]
+            print(seconds, "理论上的卡顿时间")
             if seconds > 0:
                 fps = int(round((frame_count - 1) / seconds))
-                jank= self._calculate_janky(timestamps)
+                jank = self._calculate_janky(timestamps)
+                if jank > 0:
+                    # jank_time = collect_time - last_time
+                    jank_time = seconds
+                    print(jank_time)
             else:
                 fps = 1
                 jank = 0
                 bigjank = 0
+                jank_time = 0
         else:
             seconds = timestamps[-1][0] - timestamps[0][0]
+            print(seconds, "理论上的卡顿时间")
             if seconds > 0:
                 fps = int(round((frame_count - 1) / seconds))
-                jank,bigjank = self._calculate_jankey_new(timestamps)
+                jank, bigjank = self._calculate_jankey_new(timestamps)
+                if jank > 0 or bigjank > 0:
+                    # jank_time = collect_time - last_time
+                    jank_time = seconds
+                    # print(collect_time, last_collect_time)
+                    print(jank_time, "卡顿时长")
             else:
                 fps = 1
                 jank = 0
                 bigjank = 0
-        return fps, jank, bigjank
+                jank_time = 0
+        last_collect_time = collect_time
+        return fps, jank, bigjank, jank_time
 
     def _calculate_jankey_new(self, timestamps):
         twofilmstamp = 1000.0 /24.0 * 2.0
@@ -220,7 +245,7 @@ class SurfaceStatsCollector(object):
                 # if (currentframetime > tempframetime) and (currentframetime > twofilmstamp/1000):
                 #     jank = jank + 1
         # print(jank, bigjank)
-        return jank,bigjank
+        return jank, bigjank
 
     def _calculate_janky(self, timestamps):
         tempstamp = 0
@@ -242,6 +267,7 @@ class SurfaceStatsCollector(object):
         global collect_fps
         global collect_jank
         global collect_bigjank
+        global collect_jank_time
         while True:
             try:
                 data = self.data_queue.get()
@@ -264,12 +290,16 @@ class SurfaceStatsCollector(object):
                     refresh_period = data[0]
                     timestamps = data[1]
                     collect_time = data[2]
+                    print(data)
+                    print(collect_time, "收集时间是什么")
+                    print(timestamps, "计算数组")
                     # fps,jank = self._calculate_results(refresh_period, timestamps)
-                    fps, jank, bigjank = self._calculate_results_new(refresh_period, timestamps)
+                    fps, jank, bigjank, jank_time = self._calculate_results_new(refresh_period, timestamps,collect_time)
                     # logger.debug('FPS:%2s Jank:%s'%(fps,jank))
                     collect_fps = fps
                     collect_jank = jank
                     collect_bigjank = bigjank
+                    collect_jank_time = jank_time
                 time_consume = time.time() - before
                 delta_inter = self.frequency - time_consume
                 if delta_inter > 0:
@@ -532,8 +562,9 @@ class FPSMonitor(Monitor):
         global collect_fps
         global collect_jank
         global collect_bigjank
+        global collect_jank_time
         self.fpscollector.stop()
-        return collect_fps, collect_jank, collect_bigjank
+        return collect_fps, collect_jank, collect_bigjank, collect_jank_time
 
     def save(self):
         pass
