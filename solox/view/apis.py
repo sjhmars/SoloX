@@ -486,6 +486,7 @@ def exportAndroidHtml():
     gpu = method._request(request, 'gpu')
     mem_total = method._request(request, 'mem_total')
     mem_swap = method._request(request, 'mem_swap')
+    maxTotalPass = method._request(request, 'maxTotalPass')
     fps = method._request(request, 'fps')
     jank = method._request(request, 'jank')
     bigjank = method._request(request, 'bigjank')
@@ -501,6 +502,7 @@ def exportAndroidHtml():
         summary_dict['gpu'] = gpu
         summary_dict['mem_total'] = mem_total
         summary_dict['mem_swap'] = mem_swap
+        summary_dict['maxTotalPass'] = maxTotalPass
         summary_dict['fps'] = fps
         summary_dict['jank'] = jank
         summary_dict['bigjank'] = bigjank
@@ -517,8 +519,9 @@ def exportAndroidHtml():
         summary_dict['fps_charts'] = f.getFpsLog(Platform.Android, scene)['fps']
         summary_dict['jank_charts'] = f.getFpsLog(Platform.Android, scene)['jank']
         summary_dict['bigjank_charts'] = f.getFpsLog(Platform.Android, scene)['bigjank']
+        summary_dict['gpu_charts'] = f.getGpuLog(Platform.Android, scene)
         path = f.make_android_html(scene, summary_dict)
-        result = {'status': 1, 'msg':'success', 'path':path}
+        result = {'status': 1, 'msg' : 'success', 'path':path}
     except Exception as e:
         logger.exception(e)
         result = {'status': 0, 'msg':str(e)}

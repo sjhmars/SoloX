@@ -209,8 +209,8 @@
                 <div class="card-body">
                     <div class="row align-items-center">
                         <div class="col-auto">
-                            <span class="bg-pink text-white avatar" style="font-size: 0.65rem">
-                                BigJank
+                            <span class="bg-pink text-white avatar">
+                                FPS
                             </span>
                         </div>
                         <div class="col">
@@ -230,8 +230,8 @@
                 <div class="card-body">
                     <div class="row align-items-center">
                         <div class="col-auto">
-                            <span class="bg-pink text-white avatar" style="font-size: 0.65rem">
-                                Stutter
+                            <span class="bg-pink text-white avatar" >
+                                FPS
                             </span>
                         </div>
                         <div class="col">
@@ -432,7 +432,7 @@
                                 GPU
                             </div>
                             <div class="text-muted">
-                                Avg: {{ apm_data.gpu }}%
+                                Avg: {{ apm_data.gpu }}
                             </div>
                         </div>
                     </div>
@@ -686,6 +686,7 @@
                 cpu_sys:'{{ apm_data.cpuSystemRate }}',
                 mem_total:'{{ apm_data.totalPassAvg }}',
                 mem_swap:'{{ apm_data.swapPassAvg }}',
+                gpu: '{{ apm_data.gpu }}',
                 fps:'{{ apm_data.fps }}',
                 jank:'{{ apm_data.jank }}',
                 bigjank:'{{ apm_data.bigjank }}',

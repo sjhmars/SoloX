@@ -75,6 +75,21 @@
                                                 <span class="bg-yellow text-white avatar">MEM</span>
                                             </div>
                                             <div class="col">
+                                                <div class="font-weight-medium">MaxTotal</div>
+                                                <div class="text-muted">Avg: {{ maxTotalPass }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 col-lg-2">
+                                <div class="card card-sm">
+                                    <div class="card-body">
+                                        <div class="row align-items-center">
+                                            <div class="col-auto">
+                                                <span class="bg-yellow text-white avatar">MEM</span>
+                                            </div>
+                                            <div class="col">
                                                 <div class="font-weight-medium">Swap</div>
                                                 <div class="text-muted">Avg: {{ mem_swap }}</div>
                                             </div>
@@ -107,6 +122,36 @@
                                             <div class="col">
                                                 <div class="font-weight-medium">Jank</div>
                                                 <div class="text-muted">All: {{ jank }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 col-lg-2">
+                                <div class="card card-sm">
+                                    <div class="card-body">
+                                        <div class="row align-items-center">
+                                            <div class="col-auto">
+                                                <span class="bg-pink text-white avatar">FPS</span>
+                                            </div>
+                                            <div class="col">
+                                                <div class="font-weight-medium" >BigJank</div>
+                                                <div class="text-muted">All: {{ bigjank }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 col-lg-2">
+                                <div class="card card-sm">
+                                    <div class="card-body">
+                                        <div class="row align-items-center">
+                                            <div class="col-auto">
+                                                <span class="bg-pink text-white avatar">FPS</span>
+                                            </div>
+                                            <div class="col">
+                                                <div class="font-weight-medium" >Stutter</div>
+                                                <div class="text-muted">All: {{ Stutter }}</div>
                                             </div>
                                         </div>
                                     </div>
@@ -172,6 +217,21 @@
                                     </div>
                                 </div>
                             </div>
+                            <div class="col-sm-6 col-lg-2">
+                                <div class="card card-sm">
+                                    <div class="card-body">
+                                        <div class="row align-items-center">
+                                            <div class="col-auto">
+                                                <span class="bg-blue text-white avatar">GPU</span>
+                                            </div>
+                                            <div class="col">
+                                                <div class="font-weight-medium">GPU</div>
+                                                <div class="text-muted">All: {{ gpu }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div class="col-12">
@@ -186,6 +246,19 @@
                             </div>
                             <div class="card-body">
                                 <div id="chart-cpu"></div>
+                            </div>
+                        </div>
+                        <div class="card cpu-card mb-3">
+                            <div class="card-header">
+                                <div class='card-title'>GPU Usage (%)</div>
+                                <div class="card-actions btn-actions">
+                                    <a class="btn-action cursor-pointer"  onclick="screenshot('gpu-card','gpu.png')">
+                                        <svg t="1646303797379" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="5790" width="2000" height="2000"><path d="M897.856 842.56c14.464-6.72 18.624-20.48 9.28-30.848l-241.216-263.296a25.792 25.792 0 0 0-7.68-5.888c-14.016-7.296-33.6-5.184-43.776 4.8l-241.152 233.088-103.808-70.528a30.912 30.912 0 0 0-3.52-1.92c-14.08-7.36-33.664-4.992-43.776 4.864l-101.056 97.728a18.368 18.368 0 0 0-6.08 13.952c0.512 12.288 14.848 22.016 32.128 21.696h732.8a40.768 40.768 0 0 0 17.856-3.648zM259.84 399.68a78.464 78.464 0 0 0 117.504 67.84 78.272 78.272 0 0 0 0-135.744A78.208 78.208 0 0 0 259.84 399.68" p-id="5791"></path><path d="M864.832 872.256H159.232a83.84 83.84 0 0 1-83.776-83.776V235.52a83.84 83.84 0 0 1 83.776-83.776h705.536a83.84 83.84 0 0 1 83.776 83.776v552.96a83.84 83.84 0 0 1-83.712 83.776zM159.232 183.744a51.84 51.84 0 0 0-51.776 51.776v552.96a51.84 51.84 0 0 0 51.776 51.776h705.536a51.84 51.84 0 0 0 51.776-51.776V235.52a51.84 51.84 0 0 0-51.776-51.776H159.232z" p-id="5792"></path></svg>
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div id="chart-gpu"></div>
                             </div>
                         </div>
                         <div class="card memory-card mb-3">
@@ -265,7 +338,7 @@
                     <div class="col-12  mt-3 mt-lg-0">
                         <ul class="list-inline list-inline-dots mb-0">
                             <li class="list-inline-item">Copyright &copy; <label id="curYear"></label>
-                                <a href="https://github.com/smart-test-ti" class="link-secondary">SoloX</a>. All rights reserved 
+                                <a href="https://github.com/smart-test-ti" class="link-secondary">SoloX</a>. made from ZhongTai
                             </li>
                             <li class="list-inline-item">
                                 <a href="https://github.com/smart-test-ti/SoloX" target="_blank" class="link-secondary" rel="noopener">
@@ -300,6 +373,7 @@
         if({{ mem_detail_charts.memory_detail.java_heap }}.length > 0 ){
             initMemoryDetailCharts()
         }
+        initGpuCharts()
         initNetworkCharts()
         initFPSCharts()
         initBatteryCharts()
@@ -380,6 +454,15 @@
         }])
     }
 
+    function initGpuCharts(){
+        var gpu_chart = new ApexCharts(document.querySelector("#chart-gpu"), options('line'));
+        gpu_chart.render();
+        gpu_chart.updateSeries([{
+            name: 'gpu',
+            data: {{ gpu_charts.gpu }}
+        }])
+    }
+
     function initMemoryCharts(){
         var mem_chart = new ApexCharts(document.querySelector("#chart-mem"), options('line'));
         mem_chart.render();
@@ -440,6 +523,10 @@
         },{
             name: 'jank',
             data: {{ jank_charts }}
+        },
+        {
+            name: 'Big_jank',
+            data: {{ bigjank_charts }}
         }])
     }
 

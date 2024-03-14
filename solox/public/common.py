@@ -281,6 +281,7 @@ class File:
                                            Stutter=summary["Stutter"],
                                            maxTotalPass=summary['maxTotalPass'],
                                            level=summary['level'],
+                                           gpu=summary['gpu'],
                                            tem=summary['tem'], net_send=summary['net_send'],
                                            net_recv=summary['net_recv'], cpu_charts=summary['cpu_charts'],
                                            mem_charts=summary['mem_charts'], net_charts=summary['net_charts'],
@@ -577,7 +578,7 @@ class File:
 
         gpuData = self.readLog(scene=scene, filename='gpu.log')[1]
         if gpuData.__len__() > 0:
-            gpu = round(sum(gpuData) / len(gpuData), 2)
+            gpu = f'{round(sum(gpuData) / len(gpuData), 2)}%'
         else:
             gpu = 0
         batteryLevelData = self.readLog(scene=scene, filename=f'battery_level.log')[1]
@@ -590,7 +591,7 @@ class File:
 
         totalPassData = self.readLog(scene=scene, filename=f'mem_total.log')[1]
         totalPassData.sort()
-        maxTotalPass = totalPassData[totalPassData.__len__()-1]
+        maxTotalPass = f'{totalPassData[totalPassData.__len__()-1]}MB'
 
         if totalPassData.__len__() > 0:
             swapPassData = self.readLog(scene=scene, filename=f'mem_swap.log')[1]
