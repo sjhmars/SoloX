@@ -624,17 +624,16 @@ class File:
             last_time = int(time.mktime(last_time_obj))
             last_time += last_microsecond_part / 1e6  # 替换微秒
 
-
             all_time = (last_time - first_time) * 1000
             jank_time_all = int(sum(time_date[1]))
 
+            print(jank_time_all)
             print(all_time)
 
             Stutter = jank_time_all / all_time
             Stutter = "{:.3%}".format(Stutter)
         else:
             Stutter = '0.0%'
-        print(Stutter)
         if fpsData.__len__() > 0:
             fpsAvg = f'{int(sum(fpsData) / len(fpsData))}HZ/s'
             jankAvg = f'{int(sum(jankData))}'

@@ -394,13 +394,14 @@ class FPS(object):
             monitors = FPSMonitor(device_id=self.deviceId, package_name=self.pkgName, frequency=1,
                                   surfaceview=self.surfaceview, start_time=TimeUtils.getCurrentTimeUnderline())
             monitors.start()
-            fps, jank, bigjank, collect_jank_time = monitors.stop()
+            fps, jank, bigjank, collect_jank_time, collect_Stutter = monitors.stop()
             if noLog is False:
                 apm_time = datetime.datetime.now().strftime('%H:%M:%S.%f')
                 f.add_log(os.path.join(f.report_dir,'fps.log'), apm_time, fps)
                 f.add_log(os.path.join(f.report_dir,'jank.log'), apm_time, jank)
                 f.add_log(os.path.join(f.report_dir,'bigjank.log'), apm_time, bigjank)
                 f.add_log(os.path.join(f.report_dir, 'collect_jank_time.log'), apm_time, collect_jank_time)
+                f.add_log(os.path.join(f.report_dir, 'Stutter.log'), apm_time, collect_Stutter)
         except Exception as e:
             fps, jank, bigjank = 0
             if len(d.getPid(self.deviceId, self.pkgName)) == 0:

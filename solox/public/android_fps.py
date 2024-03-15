@@ -16,7 +16,8 @@ collect_fps = 0
 collect_jank = 0
 collect_bigjank = 0
 collect_jank_time = 0
-last_collect_time = 0
+collect_Stutter = 0
+first_collect_time = 0
 
 
 class SurfaceStatsCollector(object):
@@ -157,14 +158,12 @@ class SurfaceStatsCollector(object):
         return fps, jank
 
     def _calculate_results_new(self, refresh_period, timestamps, collect_time):
-        global last_collect_time
-        print(last_collect_time, "过去的时间")
-        if last_collect_time == 0:
-             last_collect_time = collect_time
-        print(collect_time, "现在的时间")
+        global first_collect_time
+        print(first_collect_time, "过去的时间")
+        if first_collect_time == 0:
+             first_collect_time = collect_time
         frame_count = len(timestamps)
-        last_time = last_collect_time
-        jank_time = 0
+        first_time = first_collect_time
         if frame_count == 0:
             fps = 0
             jank = 0
@@ -177,14 +176,10 @@ class SurfaceStatsCollector(object):
             jank_time = 0
         elif frame_count == 2 or frame_count == 3 or frame_count == 4:
             seconds = timestamps[-1][0] - timestamps[0][0]
-            print(seconds, "理论上的卡顿时间")
+            print(first_time)
             if seconds > 0:
                 fps = int(round((frame_count - 1) / seconds))
-                jank = self._calculate_janky(timestamps)
-                if jank > 0:
-                    # jank_time = collect_time - last_time
-                    jank_time = seconds
-                    print(jank_time)
+                jank, jank_time = self._calculate_janky(timestamps)
             else:
                 fps = 1
                 jank = 0
@@ -192,22 +187,18 @@ class SurfaceStatsCollector(object):
                 jank_time = 0
         else:
             seconds = timestamps[-1][0] - timestamps[0][0]
-            print(seconds, "理论上的卡顿时间")
             if seconds > 0:
                 fps = int(round((frame_count - 1) / seconds))
-                jank, bigjank = self._calculate_jankey_new(timestamps)
-                if jank > 0 or bigjank > 0:
-                    # jank_time = collect_time - last_time
-                    jank_time = seconds
-                    # print(collect_time, last_collect_time)
-                    print(jank_time, "卡顿时长")
+                jank, bigjank, jank_time = self._calculate_jankey_new(timestamps)
             else:
                 fps = 1
                 jank = 0
                 bigjank = 0
                 jank_time = 0
-        last_collect_time = collect_time
-        return fps, jank, bigjank, jank_time
+        print(collect_time-first_time, "总采集时间")
+        Stutter = jank_time / (collect_time-first_time*1000)
+        print(Stutter)
+        return fps, jank, bigjank, jank_time, Stutter
 
     def _calculate_jankey_new(self, timestamps):
         twofilmstamp = 1000.0 /24.0 * 2.0
@@ -215,6 +206,8 @@ class SurfaceStatsCollector(object):
         tempstamp = 0
         jank = 0
         bigjank = 0
+        jank_time = 0
+        print(timestamps, "传入进来的")
         for index, timestamp in enumerate(timestamps):
             if (index == 0) or (index == 1) or (index == 2) or (index == 3):
                 if tempstamp == 0:
@@ -223,6 +216,7 @@ class SurfaceStatsCollector(object):
                 costtime = timestamp[1] - tempstamp
                 if costtime > self.jank_threshold:
                     jank = jank + 1
+                    jank_time = jank_time + costtime * 1000
                 tempstamp = timestamp[1]
             elif index >= 4:
                 if timestamps[index][0] - timestamps[index - 1][0] > sum([
@@ -230,10 +224,13 @@ class SurfaceStatsCollector(object):
                     timestamps[index - 2][0] - timestamps[index - 3][0],
                     timestamps[index - 3][0] - timestamps[index - 4][0],
                 ]) / 3 * 2:
-                    if timestamps[index][0] - timestamps[index - 1][0] > threefilmstamp /1000:
+                    frame_time = timestamps[index][0] - timestamps[index - 1][0]
+                    if frame_time > threefilmstamp /1000:
                         bigjank = bigjank + 1
-                    elif timestamps[index][0] - timestamps[index - 1][0] > twofilmstamp /1000:
+                        jank_time = jank_time + frame_time*1000
+                    elif frame_time > twofilmstamp /1000:
                         jank = jank + 1
+                        jank_time = jank_time + frame_time*1000
                 # currentstamp = timestamps[index][1]
                 # lastonestamp = timestamps[index - 1][1]
                 # lasttwostamp = timestamps[index - 2][1]
@@ -245,7 +242,7 @@ class SurfaceStatsCollector(object):
                 # if (currentframetime > tempframetime) and (currentframetime > twofilmstamp/1000):
                 #     jank = jank + 1
         # print(jank, bigjank)
-        return jank, bigjank
+        return jank, bigjank, jank_time
 
     def _calculate_janky(self, timestamps):
         tempstamp = 0
@@ -257,8 +254,9 @@ class SurfaceStatsCollector(object):
             costtime = timestamp[1] - tempstamp
             if costtime > self.jank_threshold:
                 jank = jank + 1
+                costtime = costtime*1000
             tempstamp = timestamp[1]
-        return jank
+        return jank, costtime
 
     '''
         计算数据线程
@@ -268,6 +266,7 @@ class SurfaceStatsCollector(object):
         global collect_jank
         global collect_bigjank
         global collect_jank_time
+        global collect_Stutter
         while True:
             try:
                 data = self.data_queue.get()
@@ -292,14 +291,14 @@ class SurfaceStatsCollector(object):
                     collect_time = data[2]
                     print(data)
                     print(collect_time, "收集时间是什么")
-                    print(timestamps, "计算数组")
                     # fps,jank = self._calculate_results(refresh_period, timestamps)
-                    fps, jank, bigjank, jank_time = self._calculate_results_new(refresh_period, timestamps,collect_time)
+                    fps, jank, bigjank, jank_time, Stutter = self._calculate_results_new(refresh_period, timestamps,collect_time)
                     # logger.debug('FPS:%2s Jank:%s'%(fps,jank))
                     collect_fps = fps
                     collect_jank = jank
                     collect_bigjank = bigjank
                     collect_jank_time = jank_time
+                    collect_Stutter = Stutter
                 time_consume = time.time() - before
                 delta_inter = self.frequency - time_consume
                 if delta_inter > 0:
@@ -563,8 +562,9 @@ class FPSMonitor(Monitor):
         global collect_jank
         global collect_bigjank
         global collect_jank_time
+        global collect_Stutter
         self.fpscollector.stop()
-        return collect_fps, collect_jank, collect_bigjank, collect_jank_time
+        return collect_fps, collect_jank, collect_bigjank, collect_jank_time, collect_Stutter
 
     def save(self):
         pass
