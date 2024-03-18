@@ -530,9 +530,10 @@ class File:
         if platform == Platform.Android:
             targetDic['jank'] = self.readLog(scene=scene, filename='jank.log')[0]
             targetDic['bigjank'] = self.readLog(scene=scene, filename='bigjank.log')[0]
-            result = {'status': 1, 'fps': targetDic['fps'], 'jank': targetDic['jank'], 'bigjank': targetDic['bigjank']}
+            targetDic['Stutter'] = self.readLog(scene=scene, filename='Stutter.log')[0]
+            result = {'status': 1, 'fps': targetDic['fps'], 'jank': targetDic['jank'], 'bigjank': targetDic['bigjank'], 'Stutter':targetDic['Stutter']}
         else:
-            result = {'status': 1, 'fps': targetDic['fps'], 'bigjank': targetDic['bigjank']}
+            result = {'status': 1, 'fps': targetDic['fps'], 'bigjank': targetDic['bigjank'], 'Stutter':targetDic['Stutter']}
         return result
 
     def getFpsLogCompare(self, platform, scene1, scene2):
@@ -603,34 +604,36 @@ class File:
         fpsData = self.readLog(scene=scene, filename=f'fps.log')[1]
         jankData = self.readLog(scene=scene, filename=f'jank.log')[1]
         bigjankData = self.readLog(scene=scene, filename=f'bigjank.log')[1]
-        time_date = self.readLog(scene=scene, filename=f'collect_jank_time.log')
-        jank_time_date = time_date[0]
-        if jank_time_date.__len__() > 0:
+        # time_date = self.readLog(scene=scene, filename=f'collect_jank_time.log')
+        Stutter_date = self.readLog(scene=scene, filename=f'Stutter.log')[1]
+        # jank_time_date = time_date[0]
+        if Stutter_date.__len__() > 0:
 
-            first_time_str = jank_time_date[0].get('x')
-            first_time_parts = first_time_str.split('.')
-            first_time_part, microsecond_part = first_time_parts[0], int(first_time_parts[1])
-            today = datetime.today().date()
-            first_time_str = f"{today} {first_time_part}"
-            first_time_obj = time.strptime(first_time_str, '%Y-%m-%d %H:%M:%S')
-            first_time = int(time.mktime(first_time_obj))
-            first_time += microsecond_part / 1e6  # 替换微秒
+            # first_time_str = jank_time_date[0].get('x')
+            # first_time_parts = first_time_str.split('.')
+            # first_time_part, microsecond_part = first_time_parts[0], int(first_time_parts[1])
+            # today = datetime.today().date()
+            # first_time_str = f"{today} {first_time_part}"
+            # first_time_obj = time.strptime(first_time_str, '%Y-%m-%d %H:%M:%S')
+            # first_time = int(time.mktime(first_time_obj))
+            # first_time += microsecond_part / 1e6  # 替换微秒
+            #
+            # last_time_str = jank_time_date[jank_time_date.__len__() - 1].get('x')
+            # last_time_parts = last_time_str.split('.')
+            # last_time_part, last_microsecond_part = last_time_parts[0], int(last_time_parts[1])
+            # last_time_str = f"{today} {last_time_part}"
+            # last_time_obj = time.strptime(last_time_str, '%Y-%m-%d %H:%M:%S')
+            # last_time = int(time.mktime(last_time_obj))
+            # last_time += last_microsecond_part / 1e6  # 替换微秒
+            #
+            # all_time = (last_time - first_time) * 1000
+            # jank_time_all = int(sum(time_date[1]))
+            #
+            # print(jank_time_all)
+            # print(all_time)
 
-            last_time_str = jank_time_date[jank_time_date.__len__() - 1].get('x')
-            last_time_parts = last_time_str.split('.')
-            last_time_part, last_microsecond_part = last_time_parts[0], int(last_time_parts[1])
-            last_time_str = f"{today} {last_time_part}"
-            last_time_obj = time.strptime(last_time_str, '%Y-%m-%d %H:%M:%S')
-            last_time = int(time.mktime(last_time_obj))
-            last_time += last_microsecond_part / 1e6  # 替换微秒
-
-            all_time = (last_time - first_time) * 1000
-            jank_time_all = int(sum(time_date[1]))
-
-            print(jank_time_all)
-            print(all_time)
-
-            Stutter = jank_time_all / all_time
+            Stutter = Stutter_date[Stutter_date.__len__()-1]
+            print(Stutter_date)
             Stutter = "{:.3%}".format(Stutter)
         else:
             Stutter = '0.0%'
@@ -728,6 +731,7 @@ class File:
         apm_dict['fps'] = fpsAvg
         apm_dict['jank'] = 0
         apm_dict['bigjank'] = 0
+        apm_dict['Stutter'] = 0
         apm_dict['flow_send'] = flowSend
         apm_dict['flow_recv'] = flowRecv
         apm_dict['batteryTeml'] = batteryTeml

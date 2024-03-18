@@ -18,6 +18,7 @@ collect_bigjank = 0
 collect_jank_time = 0
 collect_Stutter = 0
 first_collect_time = 0
+this_jank_time = 0
 
 
 class SurfaceStatsCollector(object):
@@ -25,7 +26,7 @@ class SurfaceStatsCollector(object):
         self.device = device
         self.frequency = frequency
         self.package_name = package_name
-        self.jank_threshold = jank_threshold / 1000.0 
+        self.jank_threshold = jank_threshold / 1000.0
         self.use_legacy_method = use_legacy
         self.surface_before = 0
         self.last_timestamp = 0
@@ -89,16 +90,16 @@ class SurfaceStatsCollector(object):
         activity_line = ''
         try:
             dumpsys_result = adb.shell(cmd='dumpsys SurfaceFlinger --list | {} {}'.format(d.filterType(), self.package_name), deviceId=self.device)
-            dumpsys_result_list = dumpsys_result.split('\n')    
+            dumpsys_result_list = dumpsys_result.split('\n')
             for line in dumpsys_result_list:
                 if line.startswith('SurfaceView') and line.find(self.package_name) != -1:
                     activity_line = line.strip()
                     break
             if activity_line:
-                if activity_line.find(' ')  != -1:      
+                if activity_line.find(' ')  != -1:
                     activity_name = activity_line.split(' ')[2]
                 else:
-                    activity_name = activity_line.replace('SurfaceView','').replace('[','').replace(']','').replace('-','').strip()    
+                    activity_name = activity_line.replace('SurfaceView','').replace('[','').replace(']','').replace('-','').strip()
             else:
                 activity_name = dumpsys_result_list[len(dumpsys_result_list) - 1]
                 if not activity_name.__contains__(self.package_name):
@@ -129,7 +130,7 @@ class SurfaceStatsCollector(object):
             else:
                 activity_name = activity_line_split[1]
         if not activity_name:
-            activity_name = self.get_surfaceview_activity()        
+            activity_name = self.get_surfaceview_activity()
         return activity_name
 
     def get_foreground_process(self):
@@ -159,7 +160,8 @@ class SurfaceStatsCollector(object):
 
     def _calculate_results_new(self, refresh_period, timestamps, collect_time):
         global first_collect_time
-        print(first_collect_time, "过去的时间")
+        global this_jank_time
+        print(first_collect_time, "第一次收集时间")
         if first_collect_time == 0:
              first_collect_time = collect_time
         frame_count = len(timestamps)
@@ -195,9 +197,16 @@ class SurfaceStatsCollector(object):
                 jank = 0
                 bigjank = 0
                 jank_time = 0
-        print(collect_time-first_time, "总采集时间")
-        Stutter = jank_time / (collect_time-first_time*1000)
-        print(Stutter)
+        all_collect_time = collect_time-first_time
+        print(all_collect_time,"总采集时间")
+        print(collect_time,"最后一次采集时间")
+        this_jank_time = this_jank_time + jank_time
+        if all_collect_time == 0:
+            Stutter = 0
+        else:
+            Stutter = (this_jank_time / (all_collect_time*1000))
+        print(jank_time)
+        print(Stutter, this_jank_time,"卡顿率，总卡顿时间")
         return fps, jank, bigjank, jank_time, Stutter
 
     def _calculate_jankey_new(self, timestamps):
@@ -289,8 +298,6 @@ class SurfaceStatsCollector(object):
                     refresh_period = data[0]
                     timestamps = data[1]
                     collect_time = data[2]
-                    print(data)
-                    print(collect_time, "收集时间是什么")
                     # fps,jank = self._calculate_results(refresh_period, timestamps)
                     fps, jank, bigjank, jank_time, Stutter = self._calculate_results_new(refresh_period, timestamps,collect_time)
                     # logger.debug('FPS:%2s Jank:%s'%(fps,jank))
@@ -299,6 +306,7 @@ class SurfaceStatsCollector(object):
                     collect_bigjank = bigjank
                     collect_jank_time = jank_time
                     collect_Stutter = Stutter
+                    print(collect_Stutter,"最终计算")
                 time_consume = time.time() - before
                 delta_inter = self.frequency - time_consume
                 if delta_inter > 0:
@@ -495,7 +503,7 @@ class SurfaceStatsCollector(object):
             # latency data, SurfaceFlinger gives the frame a timestamp of INT64_MAX.
             # Since we only care about completed frames, we will ignore any timestamps
             # with this value.
-            
+
             for line in results[2:]:
                 fields = line.split()
                 if len(fields) != 3:
@@ -540,7 +548,7 @@ class TimeUtils(object):
 
 
 class FPSMonitor(Monitor):
-    def __init__(self, device_id, package_name=None, frequency=1.0, timeout=24 * 60 * 60, fps_queue=None,
+    def __init__(self, device_id, package_name=None, frequency=0.5, timeout=24 * 60 * 60, fps_queue=None,
                  jank_threshold=166, use_legacy=False, surfaceview=True, start_time=None, **kwargs):
         super().__init__(**kwargs)
         self.start_time = start_time
@@ -568,6 +576,14 @@ class FPSMonitor(Monitor):
 
     def save(self):
         pass
+
+    @classmethod
+    def clear_up_first_time(cls):
+        global first_collect_time
+        global this_jank_time
+        first_collect_time = 0
+        this_jank_time = 0
+        logger.debug("归0第一次采集时间,归0本次总卡顿时长")
 
     def parse(self, file_path):
         pass

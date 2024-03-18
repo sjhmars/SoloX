@@ -920,12 +920,16 @@ SoloX - Application Performance Monitoring
                             if(platform == 'Android'){
                                 let seriesBigJank = fps_chart.series[2];
                                 let seriesJank = fps_chart.series[1];
+                                let seriesStutter = fps_chart.series[3];
                                 let x_bigjank = (new Date()).getTime(),
                                     y_bigjank= data['bigjank'];
                                 let x_jank = (new Date()).getTime(),
                                     y_jank = data['jank'];
+                                let x_Stutter = (new Date()).getTime(),
+                                    y_Stutter = data['Stutter'];
                                 seriesBigJank.addPoint([x_bigjank, y_bigjank], true, true);
                                 seriesJank.addPoint([x_jank, y_jank], true, true);
+                                seriesStutter.addPoint([x_Stutter, y_Stutter], true, true)
                             }
                             <!--设定定时器，1秒后重新获取数据-->
                             timerQ = setTimeout(getFps(pkgname,device,fps_switch), 1000);
@@ -1277,6 +1281,19 @@ SoloX - Application Performance Monitoring
         }())
     },{
         name : 'bigjank',
+        pointInterval: 120 * 1000,
+        data : (function () {
+            var data = [], time = (new Date()).getTime(), i;
+            for (i = -999; i <= 0; i += 1) {
+                data.push([
+                    time + i * 1000,
+                    Math.round(0)
+                ]);
+            }
+            return data;
+        }())
+    },{
+        name : 'Stutter',
         pointInterval: 120 * 1000,
         data : (function () {
             var data = [], time = (new Date()).getTime(), i;

@@ -364,8 +364,9 @@ def getFps():
             case _:
                 deviceId = d.getIdbyDevice(device, platform)
                 fps_monitor = FPS.getObject(pkgName=pkgname, deviceId=deviceId, surfaceview=surfaceview, platform=platform)
-                fps, jank, bigjank = fps_monitor.getFPS()
-                result = {'status': 1, 'fps': fps, 'jank': jank, 'bigjank' : bigjank}
+                fps, jank, bigjank, Stutter = fps_monitor.getFPS()
+                Stutter = Stutter*100
+                result = {'status': 1, 'fps': fps, 'jank': jank, 'bigjank': bigjank, 'Stutter': Stutter}
     except Exception as e:
         logger.error('get fps failed')
         logger.exception(e)
@@ -440,6 +441,7 @@ def makeReport():
                 video = 1
                 Scrcpy.stop_record()
         f.make_report(app=app, devices=devices, video=video, platform=platform, model=model)
+        FPS.clear_up_first_time()
         result = {'status': 1}
     except Exception as e:
         logger.exception(e)

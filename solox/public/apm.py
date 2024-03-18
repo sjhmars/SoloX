@@ -403,12 +403,12 @@ class FPS(object):
                 f.add_log(os.path.join(f.report_dir, 'collect_jank_time.log'), apm_time, collect_jank_time)
                 f.add_log(os.path.join(f.report_dir, 'Stutter.log'), apm_time, collect_Stutter)
         except Exception as e:
-            fps, jank, bigjank = 0
+            fps, jank, bigjank, collect_Stutter = 0
             if len(d.getPid(self.deviceId, self.pkgName)) == 0:
                 logger.error('[FPS] {} : No process found'.format(self.pkgName))
             else:
                 logger.exception(e)        
-        return fps, jank, bigjank
+        return fps, jank, bigjank, collect_Stutter
     
     def getiOSFps(self, noLog=False):
         """get iOS Fps"""
@@ -421,8 +421,12 @@ class FPS(object):
 
     def getFPS(self, noLog=False):
         """get fps、jank、bigjank"""
-        fps, jank, bigjank = self.getAndroidFps(noLog) if self.platform == Platform.Android else self.getiOSFps(noLog)
-        return fps, jank, bigjank
+        fps, jank, bigjank, collect_Stutter = self.getAndroidFps(noLog) if self.platform == Platform.Android else self.getiOSFps(noLog)
+        return fps, jank, bigjank, collect_Stutter
+
+    @classmethod
+    def clear_up_first_time(cls):
+        FPSMonitor.clear_up_first_time()
 
 class GPU(object):
     def __init__(self, pkgName, deviceId, platform=Platform.Android):
