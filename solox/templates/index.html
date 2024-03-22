@@ -1293,7 +1293,7 @@ SoloX - Application Performance Monitoring
             return data;
         }())
     },{
-        name : 'Stutter',
+        name : 'Stutter(%)',
         pointInterval: 120 * 1000,
         data : (function () {
             var data = [], time = (new Date()).getTime(), i;
@@ -1481,7 +1481,7 @@ SoloX - Application Performance Monitoring
 
     function fpsInitialize(){
         if(platform === 'Android'){
-            let title = 'FPS(HZ) & Jank(Times) & BigJank(Times)';
+            let title = 'FPS(HZ) & Jank(Times) & BigJank(Times) & Stutter(%)';
             let fps_chart = chartsInitialize('fps',title);
             return fps_chart
         }else{
@@ -1655,7 +1655,7 @@ SoloX - Application Performance Monitoring
         if(fps_checkbox){
             fpsInitialize();
             if(platform == 'Android'){
-                let title = 'FPS(HZ) & Jank(Times) & BigJank(Times)';
+                let title = 'FPS(HZ) & Jank(Times) & BigJank(Times) & Stutter(%)';
                 fps_chart = collectPers(device,pkgname,'fps',title,getFps(pkgname,device,fps_switch));
             }else{
                 let title = 'FPS（HZ）';

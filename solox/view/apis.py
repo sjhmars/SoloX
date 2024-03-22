@@ -50,7 +50,7 @@ def version():
     except Exception as e:
         logger.exception(e)
         result = {'status': 0, 'msg': str(e)}
-    return result    
+    return result
 
 @api.route('/apm/initialize', methods=['post', 'get'])
 def initialize():
@@ -67,6 +67,7 @@ def initialize():
 def deviceids():
     """get devices info"""
     platform = method._request(request, 'platform')
+    FPS.clear()
     try:
         match(platform):
             case Platform.Android:
@@ -365,7 +366,7 @@ def getFps():
                 deviceId = d.getIdbyDevice(device, platform)
                 fps_monitor = FPS.getObject(pkgName=pkgname, deviceId=deviceId, surfaceview=surfaceview, platform=platform)
                 fps, jank, bigjank, Stutter = fps_monitor.getFPS()
-                Stutter = Stutter*100
+                Stutter = round((Stutter*100), 3)
                 result = {'status': 1, 'fps': fps, 'jank': jank, 'bigjank': bigjank, 'Stutter': Stutter}
     except Exception as e:
         logger.error('get fps failed')
@@ -431,7 +432,7 @@ def makeReport():
             battery_monitor.recoverBattery()
             wifi = False if wifi_switch == 'false' else True
             pid = None
-            if process and platform == Platform.Android :
+            if process and platform == Platform.Android:
                 pid = process.split(':')[0]
             network = Network(pkgName=app, deviceId=deviceId, platform=platform, pid=pid)
             data = network.setAndroidNet(wifi=wifi)
@@ -441,8 +442,8 @@ def makeReport():
                 video = 1
                 Scrcpy.stop_record()
         f.make_report(app=app, devices=devices, video=video, platform=platform, model=model)
-        FPS.clear_up_first_time()
         result = {'status': 1}
+        FPS.clear_up_first_time()
     except Exception as e:
         logger.exception(e)
         result = {'status': 0, 'msg': str(e)}
@@ -495,6 +496,8 @@ def exportAndroidHtml():
     Stutter = method._request(request, 'Stutter')
     level = method._request(request, 'level')
     temperature = method._request(request, 'temperature')
+    MaxTemperature = method._request(request, 'MaxTemperature')
+    AvgTemperature = method._request(request, 'AvgTemperature')
     net_send = method._request(request, 'net_send')
     net_recv = method._request(request, 'net_recv')
     try:
@@ -511,6 +514,8 @@ def exportAndroidHtml():
         summary_dict['Stutter'] = Stutter
         summary_dict['level'] = level
         summary_dict['tem'] = temperature
+        summary_dict['temMax'] = MaxTemperature
+        summary_dict['temAvg'] = AvgTemperature
         summary_dict['net_send'] = net_send
         summary_dict['net_recv'] = net_recv
         summary_dict['cpu_charts'] = f.getCpuLog(Platform.Android, scene)
@@ -521,9 +526,10 @@ def exportAndroidHtml():
         summary_dict['fps_charts'] = f.getFpsLog(Platform.Android, scene)['fps']
         summary_dict['jank_charts'] = f.getFpsLog(Platform.Android, scene)['jank']
         summary_dict['bigjank_charts'] = f.getFpsLog(Platform.Android, scene)['bigjank']
+        summary_dict['Stutter_charts'] = f.getFpsLog(Platform.Android, scene)['Stutter']
         summary_dict['gpu_charts'] = f.getGpuLog(Platform.Android, scene)
         path = f.make_android_html(scene, summary_dict)
-        result = {'status': 1, 'msg' : 'success', 'path':path}
+        result = {'status': 1, 'msg': 'success', 'path': path}
     except Exception as e:
         logger.exception(e)
         result = {'status': 0, 'msg':str(e)}
@@ -670,9 +676,9 @@ def apmCollect():
                 if platform == Platform.Android:
                     mem = Memory(pkgName=pkgname, deviceId=deviceid, platform=platform)
                     data = mem.getAndroidMemoryDetail(noLog=True)
-                    result = {'status': 1, 'data': data} 
+                    result = {'status': 1, 'data': data}
                 else:
-                    result = {'status': 0, 'msg': 'not support ios'}       
+                    result = {'status': 0, 'msg': 'not support ios'}
             case Target.Network:
                 network = Network(pkgName=pkgname, deviceId=deviceid, platform=platform)
                 data = network.getNetWorkData(wifi=True, noLog=True)

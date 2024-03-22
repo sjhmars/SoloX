@@ -282,11 +282,14 @@ class File:
                                            maxTotalPass=summary['maxTotalPass'],
                                            level=summary['level'],
                                            gpu=summary['gpu'],
-                                           tem=summary['tem'], net_send=summary['net_send'],
+                                           tem=summary['tem'],
+                                           temMax=summary['temMax'],
+                                           temAvg=summary['temAvg'],net_send=summary['net_send'],
                                            net_recv=summary['net_recv'], cpu_charts=summary['cpu_charts'],
                                            mem_charts=summary['mem_charts'], net_charts=summary['net_charts'],
                                            battery_charts=summary['battery_charts'], fps_charts=summary['fps_charts'],
                                            jank_charts=summary['jank_charts'], bigjank_charts=summary['bigjank_charts'],
+                                           Stutter_charts=summary['Stutter_charts'],
                                            mem_detail_charts=summary['mem_detail_charts'],
                                            gpu_charts=summary['gpu_charts'])
 
@@ -530,10 +533,15 @@ class File:
         if platform == Platform.Android:
             targetDic['jank'] = self.readLog(scene=scene, filename='jank.log')[0]
             targetDic['bigjank'] = self.readLog(scene=scene, filename='bigjank.log')[0]
-            targetDic['Stutter'] = self.readLog(scene=scene, filename='Stutter.log')[0]
-            result = {'status': 1, 'fps': targetDic['fps'], 'jank': targetDic['jank'], 'bigjank': targetDic['bigjank'], 'Stutter':targetDic['Stutter']}
+            Stutter_date_dict = self.readLog(scene=scene, filename='Stutter.log')[0]
+            for item in Stutter_date_dict:
+                item['y'] = round((item['y'] * 100), 3)
+            targetDic['Stutter'] = Stutter_date_dict
+            result = {'status': 1, 'fps': targetDic['fps'], 'jank': targetDic['jank'], 'bigjank': targetDic['bigjank'],
+                      'Stutter': targetDic['Stutter']}
         else:
-            result = {'status': 1, 'fps': targetDic['fps'], 'bigjank': targetDic['bigjank'], 'Stutter':targetDic['Stutter']}
+            result = {'status': 1, 'fps': targetDic['fps'], 'bigjank': targetDic['bigjank'],
+                      'Stutter': targetDic['Stutter']}
         return result
 
     def getFpsLogCompare(self, platform, scene1, scene2):
@@ -587,12 +595,16 @@ class File:
         if batteryLevelData.__len__() > 0 and batteryTemlData.__len__() > 0:
             batteryLevel = f'{batteryLevelData[-1]}%'
             batteryTeml = f'{batteryTemlData[-1]}°C'
+            batteryTemlAvg = f'{int(sum(batteryTemlData) / len(batteryTemlData))}°C'
+            batteryTemlDataSort = batteryTemlData.copy()
+            batteryTemlDataSort.sort()
+            batteryTemlMax = f'{batteryTemlDataSort[-1]}°C'
         else:
-            batteryLevel, batteryTeml = 0, 0
+            batteryLevel, batteryTeml, batteryTemlAvg, batteryTemlMax = 0, 0, 0, 0
 
         totalPassData = self.readLog(scene=scene, filename=f'mem_total.log')[1]
         totalPassData.sort()
-        maxTotalPass = f'{totalPassData[totalPassData.__len__()-1]}MB'
+        maxTotalPass = f'{totalPassData[totalPassData.__len__() - 1]}MB'
 
         if totalPassData.__len__() > 0:
             swapPassData = self.readLog(scene=scene, filename=f'mem_swap.log')[1]
@@ -632,13 +644,13 @@ class File:
             # print(jank_time_all)
             # print(all_time)
 
-            Stutter = Stutter_date[Stutter_date.__len__()-1]
+            Stutter = Stutter_date[Stutter_date.__len__() - 1]
             print(Stutter_date)
             Stutter = "{:.3%}".format(Stutter)
         else:
             Stutter = '0.0%'
         if fpsData.__len__() > 0:
-            fpsAvg = f'{int(sum(fpsData) / len(fpsData))}HZ/s'
+            fpsAvg = f'{int(sum(fpsData[1:]) / (len(fpsData)-1))}HZ/s'
             jankAvg = f'{int(sum(jankData))}'
             bigjankAvg = f'{int(sum(bigjankData))}'
         else:
@@ -671,6 +683,8 @@ class File:
         apm_dict['flow_recv'] = flowRecv
         apm_dict['batteryLevel'] = batteryLevel
         apm_dict['batteryTeml'] = batteryTeml
+        apm_dict['batteryTemlMax'] = batteryTemlMax
+        apm_dict['batteryTemlAvg'] = batteryTemlAvg
         apm_dict['mem_detail_flag'] = mem_detail_flag
 
         return apm_dict

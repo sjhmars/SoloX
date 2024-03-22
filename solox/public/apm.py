@@ -259,7 +259,7 @@ class Battery(object):
         if noLog is False:
              apm_time = datetime.datetime.now().strftime('%H:%M:%S.%f')
              f.add_log(os.path.join(f.report_dir,'battery_level.log'), apm_time, level)
-             f.add_log(os.path.join(f.report_dir,'battery_tem.log'), apm_time, temperature)
+             f.add_log(os.path.join(f.report_dir, 'battery_tem.log'), apm_time, temperature)
         return level, temperature
 
     def getiOSBattery(self, noLog=False):
@@ -391,7 +391,7 @@ class FPS(object):
     def getAndroidFps(self, noLog=False):
         """get Android Fps, unit:HZ"""
         try:
-            monitors = FPSMonitor(device_id=self.deviceId, package_name=self.pkgName, frequency=1,
+            monitors = FPSMonitor(device_id=self.deviceId, package_name=self.pkgName, frequency=2.0,
                                   surfaceview=self.surfaceview, start_time=TimeUtils.getCurrentTimeUnderline())
             monitors.start()
             fps, jank, bigjank, collect_jank_time, collect_Stutter = monitors.stop()
@@ -704,6 +704,7 @@ class AppPerformanceMonitor(initPerformanceService):
                 summary_dict['battery_charts'] = f.getBatteryLog(Platform.Android, scene)
                 summary_dict['fps_charts'] = f.getFpsLog(Platform.Android, scene)['fps']
                 summary_dict['jank_charts'] = f.getFpsLog(Platform.Android, scene)['jank']
+                summary_dict['Stutter_charts'] = f.getFpsLog(Platform.Android, scene)['Stutter']
                 f.make_android_html(scene=scene, summary=summary_dict)
             case Platform.iOS:
                 scene = f.make_report(app=self.pkgName, devices=self.deviceId,

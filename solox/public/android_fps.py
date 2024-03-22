@@ -35,6 +35,7 @@ class SurfaceStatsCollector(object):
         self.focus_window = None
         self.surfaceview = surfaceview
         self.fps_queue = fps_queue
+        print(self.frequency, " ---------------------------- ")
 
     def start(self, start_time):
         if not self.use_legacy_method:
@@ -161,9 +162,9 @@ class SurfaceStatsCollector(object):
     def _calculate_results_new(self, refresh_period, timestamps, collect_time):
         global first_collect_time
         global this_jank_time
-        print(first_collect_time, "第一次收集时间")
         if first_collect_time == 0:
              first_collect_time = collect_time
+        print(first_collect_time, "第一次收集时间")
         frame_count = len(timestamps)
         first_time = first_collect_time
         if frame_count == 0:
@@ -198,15 +199,14 @@ class SurfaceStatsCollector(object):
                 bigjank = 0
                 jank_time = 0
         all_collect_time = collect_time-first_time
-        print(all_collect_time,"总采集时间")
-        print(collect_time,"最后一次采集时间")
+        print(all_collect_time, "总采集时间")
+        print(collect_time, " 最后一次采集时间")
         this_jank_time = this_jank_time + jank_time
         if all_collect_time == 0:
             Stutter = 0
         else:
-            Stutter = (this_jank_time / (all_collect_time*1000))
-        print(jank_time)
-        print(Stutter, this_jank_time,"卡顿率，总卡顿时间")
+            Stutter = (this_jank_time / all_collect_time)
+        print(Stutter, this_jank_time, "卡顿率，总卡顿时间")
         return fps, jank, bigjank, jank_time, Stutter
 
     def _calculate_jankey_new(self, timestamps):
@@ -225,21 +225,21 @@ class SurfaceStatsCollector(object):
                 costtime = timestamp[1] - tempstamp
                 if costtime > self.jank_threshold:
                     jank = jank + 1
-                    jank_time = jank_time + costtime * 1000
+                    # jank_time = jank_time + costtime * 1000
                 tempstamp = timestamp[1]
             elif index >= 4:
-                if timestamps[index][0] - timestamps[index - 1][0] > sum([
-                    timestamps[index - 1][0] - timestamps[index - 2][0],
-                    timestamps[index - 2][0] - timestamps[index - 3][0],
-                    timestamps[index - 3][0] - timestamps[index - 4][0],
+                if timestamps[index][1] - timestamps[index - 1][1] > sum([
+                    timestamps[index - 1][1] - timestamps[index - 2][1],
+                    timestamps[index - 2][1] - timestamps[index - 3][1],
+                    timestamps[index - 3][1] - timestamps[index - 4][1],
                 ]) / 3 * 2:
-                    frame_time = timestamps[index][0] - timestamps[index - 1][0]
+                    frame_time = timestamps[index][1] - timestamps[index - 1][1]
                     if frame_time > threefilmstamp /1000:
                         bigjank = bigjank + 1
-                        jank_time = jank_time + frame_time*1000
+                        jank_time = jank_time + frame_time
                     elif frame_time > twofilmstamp /1000:
                         jank = jank + 1
-                        jank_time = jank_time + frame_time*1000
+                        jank_time = jank_time + frame_time
                 # currentstamp = timestamps[index][1]
                 # lastonestamp = timestamps[index - 1][1]
                 # lasttwostamp = timestamps[index - 2][1]
@@ -306,7 +306,7 @@ class SurfaceStatsCollector(object):
                     collect_bigjank = bigjank
                     collect_jank_time = jank_time
                     collect_Stutter = Stutter
-                    print(collect_Stutter,"最终计算")
+                    print(collect_Stutter, "最终计算")
                 time_consume = time.time() - before
                 delta_inter = self.frequency - time_consume
                 if delta_inter > 0:
@@ -548,7 +548,7 @@ class TimeUtils(object):
 
 
 class FPSMonitor(Monitor):
-    def __init__(self, device_id, package_name=None, frequency=0.5, timeout=24 * 60 * 60, fps_queue=None,
+    def __init__(self, device_id, package_name=None, frequency=1.0, timeout=24 * 60 * 60, fps_queue=None,
                  jank_threshold=166, use_legacy=False, surfaceview=True, start_time=None, **kwargs):
         super().__init__(**kwargs)
         self.start_time = start_time
@@ -581,9 +581,19 @@ class FPSMonitor(Monitor):
     def clear_up_first_time(cls):
         global first_collect_time
         global this_jank_time
+        global collect_Stutter
+        global collect_fps
+        global collect_jank
+        global collect_bigjank
+        global collect_jank_time
         first_collect_time = 0
         this_jank_time = 0
-        logger.debug("归0第一次采集时间,归0本次总卡顿时长")
+        collect_Stutter = 0
+        collect_fps = 0
+        collect_jank = 0
+        collect_bigjank = 0
+        collect_jank_time = 0
+        logger.debug("归0fps所有参数")
 
     def parse(self, file_path):
         pass

@@ -131,7 +131,7 @@
                                 {% if lan == 'cn' %} 最大物理内存 {% else %} maxTotalPass {% endif %}
                             </div>
                             <div class="text-muted">
-                                Avg：{{ apm_data.maxTotalPass }}
+                                MAX：{{ apm_data.maxTotalPass }}
                             </div>
                         </div>
                     </div>
@@ -284,6 +284,48 @@
                             </div>
                             <div class="text-muted">
                                 Final: {{ apm_data.batteryTeml }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-2">
+            <div class="card card-sm">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-auto">
+                            <span class="bg-green text-white avatar">
+                                {% if lan == 'cn' %} 电池 {% else %} BAT {% endif %}
+                            </span>
+                        </div>
+                        <div class="col">
+                            <div class="font-weight-medium">
+                                {% if lan == 'cn' %} 最大温度 {% else %} MaxTemperature {% endif %}
+                            </div>
+                            <div class="text-muted">
+                                Max: {{ apm_data.batteryTemlMax }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-2">
+            <div class="card card-sm">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-auto">
+                            <span class="bg-green text-white avatar">
+                                {% if lan == 'cn' %} 电池 {% else %} BAT {% endif %}
+                            </span>
+                        </div>
+                        <div class="col">
+                            <div class="font-weight-medium">
+                                {% if lan == 'cn' %} 平均温度 {% else %} AvgTemperature {% endif %}
+                            </div>
+                            <div class="text-muted">
+                                Avg: {{ apm_data.batteryTemlAvg }}
                             </div>
                         </div>
                     </div>
@@ -528,7 +570,7 @@
         <div class="card-header">
             <div class='card-title'>
                 {% if platform == 'Android' %}
-                FPS(HZ) & Jank(Times)
+                FPS(HZ) & Jank(Times) & BigJank(Times) & Stutter(%)
                 {% else %}
                 FPS (HZ)
                 {% endif %}
@@ -694,6 +736,8 @@
                 maxTotalPass : '{{ apm_data.maxTotalPass }}',
                 level:'{{ apm_data.batteryLevel }}',
                 temperature:'{{ apm_data.batteryTeml }}',
+                MaxTemperature:'{{ apm_data.batteryTemlMax }}',
+                AvgTemperature:'{{ apm_data.batteryTemlAvg }}',
                 net_send:'{{ apm_data.flow_send }}',
                 net_recv:'{{ apm_data.flow_recv }}',
             },
@@ -901,6 +945,9 @@
                     },{
                         name: 'bigjank',
                         data: data['bigjank']
+                    },{
+                        name: 'Stutter(%)',
+                        data: data['Stutter']
                     }])
                 }else{
                     fps_chart.updateSeries([{
