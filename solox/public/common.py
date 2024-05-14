@@ -97,7 +97,9 @@ class Devices:
             sdkversion = self.getSdkVersion(deviceId)
             if sdkversion and int(sdkversion) < 26:
                 result = os.popen(f"{self.adb} -s {deviceId} shell ps | {self.filterType()} {pkgName}").readlines()
-                processList = ['{}:{}'.format(process.split()[1], process.split()[8]) for process in result]
+                resultList = [result[0]]
+                # print(resultList)
+                processList = ['{}:{}'.format(process.split()[1], process.split()[8]) for process in resultList]
             else:
                 result = os.popen(f"{self.adb} -s {deviceId} shell ps -ef | {self.filterType()} {pkgName}").readlines()
                 processList = ['{}:{}'.format(process.split()[1], process.split()[7]) for process in result]
@@ -184,6 +186,8 @@ class Devices:
             case Platform.Android:
                 result['brand'] = adb.shell(cmd='getprop ro.product.brand', deviceId=deviceId)
                 result['name'] = adb.shell(cmd='getprop ro.product.model', deviceId=deviceId)
+                cmd1 = '"cat /proc/cpuinfo | grep \'processor\' | wc -l"'
+                result['cpuinfo'] = adb.shell(cmd=cmd1, deviceId=deviceId)
                 result['version'] = adb.shell(cmd='getprop ro.build.version.release', deviceId=deviceId)
                 result['serialno'] = adb.shell(cmd='getprop ro.serialno', deviceId=deviceId)
                 cmd = f'ip addr show wlan0 | {self.filterType()} link/ether'
@@ -239,7 +243,7 @@ class File:
 
     def export_excel(self, platform, scene):
         logger.info('Exporting excel ...')
-        android_log_file_list = ['cpu_app', 'cpu_sys', 'mem_total', 'mem_native', 'mem_dalvik',
+        android_log_file_list = ['cpu_app', 'cpu_sys', 'cpu_freq', 'mem_total', 'mem_native', 'mem_dalvik',
                                  'battery_level', 'battery_tem', 'upflow', 'downflow', 'fps', 'gpu']
         ios_log_file_list = ['cpu_app', 'cpu_sys', 'mem_total', 'battery_tem', 'battery_current',
                              'battery_voltage', 'battery_power', 'upflow', 'downflow', 'fps', 'gpu']
@@ -283,9 +287,11 @@ class File:
                                            level=summary['level'],
                                            gpu=summary['gpu'],
                                            tem=summary['tem'],
+                                           corenum=summary['corenum'],
                                            temMax=summary['temMax'],
                                            temAvg=summary['temAvg'],net_send=summary['net_send'],
                                            net_recv=summary['net_recv'], cpu_charts=summary['cpu_charts'],
+                                           cpufreq_charts=summary['cpufreq_charts'],
                                            mem_charts=summary['mem_charts'], net_charts=summary['net_charts'],
                                            battery_charts=summary['battery_charts'], fps_charts=summary['fps_charts'],
                                            jank_charts=summary['jank_charts'], bigjank_charts=summary['bigjank_charts'],
@@ -357,7 +363,7 @@ class File:
             case _:
                 logger.error('record network data failed')
 
-    def make_report(self, app, devices, video, platform=Platform.Android, model='normal'):
+    def make_report(self, app, devices, corenum, video, platform=Platform.Android, model='normal'):
         logger.info('Generating test results ...')
         current_time = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
         result_dict = {
@@ -366,6 +372,7 @@ class File:
             "platform": platform,
             "model": model,
             "devices": devices,
+            "corenum": corenum,
             "ctime": current_time,
             "video": video
         }
@@ -421,6 +428,15 @@ class File:
         targetDic['cpuAppData'] = self.readLog(scene=scene, filename='cpu_app.log')[0]
         targetDic['cpuSysData'] = self.readLog(scene=scene, filename='cpu_sys.log')[0]
         result = {'status': 1, 'cpuAppData': targetDic['cpuAppData'], 'cpuSysData': targetDic['cpuSysData']}
+        return result
+
+    def getCpuFreqLog(self, platform, scene, corenum):
+        targetDic = {}
+        # print(corenum)
+        for i in range(int(corenum)):
+            targetDic['cpuFreq_{}'.format(i)] = self.readLog(scene=scene, filename='cpu_freq_{}.log'.format(i))[0]
+        result = {'status': 1, 'cpuFreq': targetDic}
+        # print(result)
         return result
 
     def getCpuLogCompare(self, platform, scene1, scene2):
@@ -574,9 +590,9 @@ class File:
             if size < multiple:
                 return '{0:.2f} {1}'.format(size, suffix)
 
-    def _setAndroidPerfs(self, scene):
+    def _setAndroidPerfs(self, scene, corenum):
         """Aggregate APM data for Android"""
-
+        apm_dict = dict()
         cpuAppData = self.readLog(scene=scene, filename=f'cpu_app.log')[1]
         cpuSystemData = self.readLog(scene=scene, filename=f'cpu_sys.log')[1]
         if cpuAppData.__len__() > 0 and cpuSystemData.__len__() > 0:
@@ -585,6 +601,9 @@ class File:
         else:
             cpuAppRate, cpuSystemRate = 0, 0
 
+        for i in range(int(corenum)):
+            cpuFreqData = self.readLog(scene=scene, filename=f'cpu_core_{i}.log')[1]
+            apm_dict['cpuFreq_{}'.format(i)] = cpuFreqData
         gpuData = self.readLog(scene=scene, filename='gpu.log')[1]
         if gpuData.__len__() > 0:
             gpu = f'{round(sum(gpuData) / len(gpuData), 2)}%'
@@ -645,7 +664,7 @@ class File:
             # print(all_time)
 
             Stutter = Stutter_date[Stutter_date.__len__() - 1]
-            print(Stutter_date)
+            # print(Stutter_date)
             Stutter = "{:.3%}".format(Stutter)
         else:
             Stutter = '0.0%'
@@ -668,7 +687,6 @@ class File:
         flowSend = f'{round(float(send / 1024), 2)}MB'
         flowRecv = f'{round(float(recv / 1024), 2)}MB'
         mem_detail_flag = os.path.exists(os.path.join(self.report_dir, scene, 'mem_java_heap.log'))
-        apm_dict = dict()
         apm_dict['cpuAppRate'] = cpuAppRate
         apm_dict['cpuSystemRate'] = cpuSystemRate
         apm_dict['gpu'] = gpu

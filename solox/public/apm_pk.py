@@ -52,6 +52,24 @@ class CPU_PK:
         IdleCpu = float(toks[4])
         return IdleCpu
 
+    def get_cpu_freq(self, deviceId):
+        try:
+            # 获取每个CPU核心的使用率
+            # cmd = f'adb -s {device} shell "top -n 1 | grep -E \'Cpu[0-9]\'"'
+            cmd = 'cat /sys/devices/system/cpu/cpu*/cpufreq/scaling_cur_freq'
+            res = adb.shell(cmd=cmd, deviceId=deviceId)
+            time.sleep(1)  # 添加延迟以确保命令的输出已经被完全填充
+            res = res.split('\n')
+            cpu_usage = []
+            for line in res:
+                cpu_usage.append(int(line))
+            sorted_list = sorted(cpu_usage, reverse=True)
+            # print(sorted_list)
+            return len(sorted_list), sorted_list
+        except Exception:
+            return None
+
+
     def getAndroidCpuRate(self):
         """get the Android cpu rate of a process"""
         processCpuTime1_first = self.getprocessCpuStat(pkgName=self.pkgNameList[0], deviceId=self.deviceId1)
@@ -79,6 +97,15 @@ class CPU_PK:
         f.add_log(os.path.join(f.report_dir, 'cpu_app1.log'), apm_time, appCpuRate1)
         f.add_log(os.path.join(f.report_dir, 'cpu_app2.log'), apm_time, appCpuRate2)
         return appCpuRate1, appCpuRate2
+
+    def getAndroidFreq(self):
+        """get the Android cpu freq"""
+        coreNum1, freq1 = self.get_cpu_freq(self.deviceId1)
+        coreNum2, freq2 = self.get_cpu_freq(self.deviceId2)
+        apm_time = datetime.datetime.now().strftime('%H:%M:%S.%f')
+        f.add_log(os.path.join(f.report_dir, 'cpu_freq1.log'), apm_time, freq1)
+        f.add_log(os.path.join(f.report_dir, 'cpu_freq2.log'), apm_time, freq2)
+        return coreNum1, freq1, coreNum2, freq2
 
 
 class MEM_PK:

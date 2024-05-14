@@ -35,7 +35,7 @@ class SurfaceStatsCollector(object):
         self.focus_window = None
         self.surfaceview = surfaceview
         self.fps_queue = fps_queue
-        print(self.frequency, " ---------------------------- ")
+        # print(self.frequency, " ---------------------------- ")
 
     def start(self, start_time):
         if not self.use_legacy_method:
@@ -77,6 +77,10 @@ class SurfaceStatsCollector(object):
                         activity_line = line.strip()
                         # print(activity_line)
                         return activity_line
+            if activity_line == '':
+                for line in dumpsys_result_list:
+                    if line.find(self.package_name) != -1:
+                        activity_line = line.strip()
             # print(activity_line)
             return activity_line
 
@@ -146,25 +150,32 @@ class SurfaceStatsCollector(object):
         if frame_count == 0:
             fps = 0
             jank = 0
+            bigjank = 0
         elif frame_count == 1:
             fps = 1
             jank = 0
+            bigjank = 0
         else:
             seconds = timestamps[-1][1] - timestamps[0][1]
             if seconds > 0:
                 fps = int(round((frame_count - 1) / seconds))
-                jank = self._calculate_janky(timestamps)
+                jank, bigjank = self._calculate_janky(timestamps)
             else:
                 fps = 1
                 jank = 0
-        return fps, jank
+                bigjank = 0
+        return fps, jank, bigjank
 
     def _calculate_results_new(self, refresh_period, timestamps, collect_time):
         global first_collect_time
         global this_jank_time
+
+        # 计算卡顿率的倍数
+        times = 1
         if first_collect_time == 0:
              first_collect_time = collect_time
-        print(first_collect_time, "第一次收集时间")
+        # print(first_collect_time, "第一次收集时间")
+        # print(timestamps, "我猜是这个数组有问题")
         frame_count = len(timestamps)
         first_time = first_collect_time
         if frame_count == 0:
@@ -179,10 +190,11 @@ class SurfaceStatsCollector(object):
             jank_time = 0
         elif frame_count == 2 or frame_count == 3 or frame_count == 4:
             seconds = timestamps[-1][0] - timestamps[0][0]
-            print(first_time)
+            # print(first_time)
             if seconds > 0:
+                # print(seconds)
                 fps = int(round((frame_count - 1) / seconds))
-                jank, jank_time = self._calculate_janky(timestamps)
+                jank, jank_time, bigjank = self._calculate_janky(timestamps)
             else:
                 fps = 1
                 jank = 0
@@ -199,14 +211,19 @@ class SurfaceStatsCollector(object):
                 bigjank = 0
                 jank_time = 0
         all_collect_time = collect_time-first_time
-        print(all_collect_time, "总采集时间")
-        print(collect_time, " 最后一次采集时间")
+        # print(all_collect_time, "总采集时间")
+        # print(collect_time, " 最后一次采集时间")
         this_jank_time = this_jank_time + jank_time
         if all_collect_time == 0:
             Stutter = 0
+        elif all_collect_time/600 <= times:
+            Stutter = (this_jank_time / (600 * times))
+        elif all_collect_time/600 > times:
+            times += 1
+            Stutter = (this_jank_time / (600 * times))
         else:
             Stutter = (this_jank_time / all_collect_time)
-        print(Stutter, this_jank_time, "卡顿率，总卡顿时间")
+        # print(Stutter, this_jank_time, "卡顿率，总卡顿时间")
         return fps, jank, bigjank, jank_time, Stutter
 
     def _calculate_jankey_new(self, timestamps):
@@ -216,7 +233,6 @@ class SurfaceStatsCollector(object):
         jank = 0
         bigjank = 0
         jank_time = 0
-        print(timestamps, "传入进来的")
         for index, timestamp in enumerate(timestamps):
             if (index == 0) or (index == 1) or (index == 2) or (index == 3):
                 if tempstamp == 0:
@@ -250,12 +266,13 @@ class SurfaceStatsCollector(object):
                 # currentframetime = currentstamp - lastonestamp
                 # if (currentframetime > tempframetime) and (currentframetime > twofilmstamp/1000):
                 #     jank = jank + 1
-        # print(jank, bigjank)
+        # print(jank, bigjank, "fsdfsdjfkljsdkfjksdljfjdsklfjsdklj")
         return jank, bigjank, jank_time
 
     def _calculate_janky(self, timestamps):
         tempstamp = 0
         jank = 0
+        bigjank = 0
         for timestamp in timestamps:
             if tempstamp == 0:
                 tempstamp = timestamp[1]
@@ -265,7 +282,7 @@ class SurfaceStatsCollector(object):
                 jank = jank + 1
                 costtime = costtime*1000
             tempstamp = timestamp[1]
-        return jank, costtime
+        return jank, costtime, bigjank
 
     '''
         计算数据线程
@@ -306,7 +323,7 @@ class SurfaceStatsCollector(object):
                     collect_bigjank = bigjank
                     collect_jank_time = jank_time
                     collect_Stutter = Stutter
-                    print(collect_Stutter, "最终计算")
+                    # print(collect_Stutter, "最终计算")
                 time_consume = time.time() - before
                 delta_inter = self.frequency - time_consume
                 if delta_inter > 0:
@@ -476,12 +493,18 @@ class SurfaceStatsCollector(object):
         else:
             # self.focus_window = self.get_surfaceview_activity()
             self.focus_window = self.get_surfaceview()
+            # print(self.focus_window, "能获取到吗")
             # com.sanqi.odin.weekly/com.natively.app.MainUnityActivity
             results = ''
             if self.focus_window != '':
-                results = adb.shell(
-                    cmd='dumpsys SurfaceFlinger --latency \\"%s\\"' % self.focus_window, deviceId=self.device)
-                # print(results)
+                if 'SurfaceView' not in self.focus_window:
+                    self.focus_window = 'SurfaceView ' + self.focus_window
+                    results = adb.shell(
+                        cmd='dumpsys SurfaceFlinger --latency \"%s\"' % self.focus_window, deviceId=self.device)
+                else:
+                    results = adb.shell(
+                        cmd='dumpsys SurfaceFlinger --latency \\"%s\\"' % self.focus_window, deviceId=self.device)
+                    # print('dumpsys SurfaceFlinger --latency {} {}'.format(self.focus_window, self.device))
             results = results.replace("\r\n", "\n").splitlines()
             # print(results)
             if len(results) <= 1 or int(results[-2].split()[0]) ==0:
@@ -494,6 +517,7 @@ class SurfaceStatsCollector(object):
                 return (None, None)
             if not results[0].isdigit():
                 return (None, None)
+
             try:
                 refresh_period = int(results[0]) / nanoseconds_per_second
             except Exception as e:

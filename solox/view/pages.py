@@ -57,6 +57,7 @@ def report():
                     'platform': json_data['platform'],
                     'model': json_data['model'],
                     'devices': json_data['devices'],
+                    'corenum': json_data['corenum'],
                     'ctime': json_data['ctime'],
                     'video': json_data.get('video', 0)
                 }
@@ -74,6 +75,7 @@ def analysis():
     lan = request.args.get('lan')
     scene = request.args.get('scene')
     app = request.args.get('app')
+    corenum = request.args.get('corenum')
     platform = request.args.get('platform')
     settings = m._settings(request)
     report_dir = os.path.join(os.getcwd(), 'report')
@@ -84,7 +86,7 @@ def analysis():
         if dir == scene:
             try:
                 if platform == 'Android':
-                    apm_data = f._setAndroidPerfs(scene)
+                    apm_data = f._setAndroidPerfs(scene, corenum)
                 else:
                     apm_data = f._setiOSPerfs(scene)    
             except ZeroDivisionError:

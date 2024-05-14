@@ -80,7 +80,8 @@ def deviceids():
                               'deviceids': deviceids,
                               'devices': devices,
                               'pkgnames': pkgnames,
-                              'device_detail': device_detail}
+                              'device_detail': device_detail,
+                              }
                 else:
                     result = {'status': 0, 'msg': 'no devices'}
             case Platform.iOS:
@@ -92,7 +93,8 @@ def deviceids():
                               'deviceids': deviceinfos,
                               'devices': deviceinfos,
                               'pkgnames': pkgnames,
-                              'device_detail': device_detail}
+                              'device_detail': device_detail
+                              }
                 else:
                     result = {'status': 0, 'msg': 'no devices'}
             case _:
@@ -100,6 +102,7 @@ def deviceids():
     except Exception as e:
         logger.exception(e)
         result = {'status': 0, 'msg': 'devices connect error!'}
+    # print(result)
     return result
 
 @api.route('/device/packagenames', methods=['post', 'get'])
@@ -211,6 +214,46 @@ def getCpuRate():
         logger.error('get cpu failed')
         logger.exception(e)
         result = {'status': 1, 'appCpuRate': 0, 'systemCpuRate': 0, 'first': 0, 'second': 0}
+    return result
+
+@api.route('/apm/cpufreq', methods=['post', 'get'])
+def getCpuFreq():
+    """get cpu freq"""
+    model = method._request(request, 'model')
+    platform = method._request(request, 'platform')
+    pkgname = method._request(request, 'pkgname')
+    device = method._request(request, 'device')
+    try:
+        match(model):
+            case '2-devices':
+                pkgNameList = []
+                pkgNameList.append(pkgname)
+                deviceId1 = d.getIdbyDevice(device.split(',')[0], 'Android')
+                deviceId2 = d.getIdbyDevice(device.split(',')[1], 'Android')
+                cpu = CPU_PK(pkgNameList=pkgNameList, deviceId1=deviceId1, deviceId2=deviceId2)
+                first, second = cpu.getAndroidFreq()
+                result = {'status': 1,'first': first, 'second': second}
+            case '2-app':
+                pkgNameList = pkgname.split(',')
+                deviceId1 = d.getIdbyDevice(device.split(',')[0], 'Android')
+                deviceId2 = d.getIdbyDevice(device.split(',')[1], 'Android')
+                cpu = CPU_PK(pkgNameList=pkgNameList, deviceId1=deviceId1, deviceId2=deviceId2)
+                first, second = cpu.getAndroidFreq()
+                result = {'status': 1, 'first': first, 'second': second}
+            case _:
+                process = method._request(request, 'process')
+                pid = None
+                deviceId = d.getIdbyDevice(device, platform)
+                if process and platform == Platform.Android :
+                    pid = process.split(':')[0]
+                cpu = CPU(pkgName=pkgname, deviceId=deviceId, platform=platform, pid=pid)
+                CpuFreq = cpu.getCpuFreq(noLog=False)
+                result = {'status': 1, 'CpuFreq': CpuFreq}
+    except Exception as e:
+        logger.error('get cpu failed')
+        logger.exception(e)
+        result = {'status': 1, 'CpuFreq': 0, 'first': 0, 'second': 0}
+    # print(result)
     return result
 
 @api.route('/apm/mem', methods=['post', 'get'])
@@ -403,11 +446,11 @@ def getGpu():
     pkgname = method._request(request, 'pkgname')
     device = method._request(request, 'device')
     platform = method._request(request, 'platform')
-    print(platform)
+    # print(platform)
     try:
         gpu = GPU(pkgName=pkgname, deviceId=device, platform=platform)
         final = gpu.getGPU()
-        print(final)
+        # print(final)
         result = {'status': 1, 'gpu': final}
     except Exception as e:
         logger.exception("get gpu faile")
@@ -418,6 +461,7 @@ def getGpu():
 def makeReport():
     """Create test report records"""
     platform = method._request(request, 'platform')
+    corenum = method._request(request, 'corenum')
     app = method._request(request, 'app')
     model = method._request(request, 'model')
     devices = method._request(request, 'devices')
@@ -441,7 +485,7 @@ def makeReport():
             if record:
                 video = 1
                 Scrcpy.stop_record()
-        f.make_report(app=app, devices=devices, video=video, platform=platform, model=model)
+        f.make_report(app=app, devices=devices, corenum=corenum, video=video, platform=platform, model=model)
         result = {'status': 1}
         FPS.clear_up_first_time()
     except Exception as e:
@@ -486,6 +530,7 @@ def exportAndroidHtml():
     scene = method._request(request, 'scene')
     cpu_app = method._request(request, 'cpu_app')
     cpu_sys = method._request(request, 'cpu_sys')
+    corenum = method._request(request, 'corenum')
     gpu = method._request(request, 'gpu')
     mem_total = method._request(request, 'mem_total')
     mem_swap = method._request(request, 'mem_swap')
@@ -504,6 +549,7 @@ def exportAndroidHtml():
         summary_dict = {}
         summary_dict['cpu_app'] = cpu_app
         summary_dict['cpu_sys'] = cpu_sys
+        summary_dict['corenum'] = corenum
         summary_dict['gpu'] = gpu
         summary_dict['mem_total'] = mem_total
         summary_dict['mem_swap'] = mem_swap
@@ -519,6 +565,7 @@ def exportAndroidHtml():
         summary_dict['net_send'] = net_send
         summary_dict['net_recv'] = net_recv
         summary_dict['cpu_charts'] = f.getCpuLog(Platform.Android, scene)
+        summary_dict['cpufreq_charts'] = f.getCpuFreqLog(Platform.Android, scene, corenum)
         summary_dict['mem_charts'] = f.getMemLog(Platform.Android, scene)
         summary_dict['mem_detail_charts'] = f.getMemDetailLog(Platform.Android, scene)
         summary_dict['net_charts'] = f.getFlowLog(Platform.Android, scene)
@@ -581,9 +628,12 @@ def getLogData():
     scene = method._request(request, 'scene')
     target = method._request(request, 'target')
     platform = method._request(request, 'platform')
+    corenum = method._request(request, 'corenum')
+    # print("getLogData()" + corenum)
     try:
         fucDic = {
             'cpu': f.getCpuLog(platform, scene),
+            'cpufreq': f.getCpuFreqLog(platform, scene, corenum),
             'mem': f.getMemLog(platform, scene),
             'mem_detail': f.getMemDetailLog(platform, scene),
             'battery': f.getBatteryLog(platform, scene),
@@ -668,6 +718,10 @@ def apmCollect():
                 cpu = CPU(pkgName=pkgname, deviceId=deviceid, platform=platform)
                 appCpuRate, systemCpuRate = cpu.getCpuRate(noLog=True)
                 result = {'status': 1, 'appCpuRate': appCpuRate, 'systemCpuRate': systemCpuRate}
+            case Target.CPUFreq:
+                cpu = CPU(pkgName=pkgname, deviceId=deviceid, platform=platform)
+                cpuFreq = cpu.getCpuFreq(noLog=True)
+                result = {'status': 1, 'cpuFreq': cpuFreq}
             case Target.Memory:
                 mem = Memory(pkgName=pkgname, deviceId=deviceid, platform=platform)
                 totalPass, swapPass = mem.getProcessMemory(noLog=True)

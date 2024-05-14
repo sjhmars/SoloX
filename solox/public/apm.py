@@ -18,6 +18,7 @@ m = Method()
 
 class Target:
     CPU = 'cpu'
+    CPUFreq = 'cpufreq'
     Memory = 'memory'
     MemoryDetail = 'memory_detail'
     Battery = 'battery'
@@ -92,22 +93,74 @@ class CPU(object):
             ileCpu += float(toks[4])
         return ileCpu
 
+    def get_process_cpu_time(self, this_pid):
+        cmd = 'cat /proc/{}/stat'.format(this_pid, d.filterType())
+        result = adb.shell(cmd=cmd, deviceId=self.deviceId)
+        process_stat = result.split(' ')
+        utime = int(process_stat[13])
+        stime = int(process_stat[14])
+        cutime = int(process_stat[15])
+        cstime = int(process_stat[16])
+        return utime + stime + cutime + cstime
+
+    def get_cpu_time(self):
+        cmd = 'cat /proc/stat |{} ^cpu'.format(d.filterType())
+        result = adb.shell(cmd=cmd, deviceId=self.deviceId)
+        # print(result)
+        for line in result.split('\n'):
+            if line.startswith('cpu '):  # 注意这里有一个空格，以匹配总的CPU使用时间
+                cpu_time = line.split()[1:5]
+                return [int(hh_cpu_time) for hh_cpu_time in cpu_time]
+
+    def get_cpu_corenum(self):
+        cmd = 'cat /proc/cpuinfo |{} processor'.format(d.filterType())
+        result = adb.shell(cmd=cmd, deviceId=self.deviceId)
+        return len(result.split('\n'))
+
+    def get_cpu_freq(self):
+        try:
+            # 获取每个CPU核心的使用率
+            # cmd = f'adb -s {device} shell "top -n 1 | grep -E \'Cpu[0-9]\'"'
+            cmd = 'cat /sys/devices/system/cpu/cpu*/cpufreq/scaling_cur_freq'
+            res = adb.shell(cmd=cmd, deviceId=self.deviceId)
+            time.sleep(1)  # 添加延迟以确保命令的输出已经被完全填充
+            res = res.split('\n')
+            cpu_usage = []
+            for line in res:
+                cpu_usage.append(int(line))
+            sorted_list = sorted(cpu_usage, reverse=True)
+            # print(sorted_list)
+            return sorted_list
+        except Exception:
+            return None
+
     def getAndroidCpuRate(self, noLog=False):
         """get the Android cpu rate of a process"""
         try:
-            processCpuTime_1 = self.getprocessCpuStat()
+            # processCpuTime_1 = self.getprocessCpuStat()
+            process_cpu_time1 = self.get_process_cpu_time(self.pid)
             totalCpuTime_1 = self.getTotalCpuStat()
             idleCputime_1 = self.getIdleCpuStat()
+            cpu_time1 = self.get_cpu_time()
+
             time.sleep(0.5)
-            processCpuTime_2 = self.getprocessCpuStat()
+
+            # processCpuTime_2 = self.getprocessCpuStat()
+            process_cpu_time2 = self.get_process_cpu_time(self.pid)
             totalCpuTime_2 = self.getTotalCpuStat()
             idleCputime_2 = self.getIdleCpuStat()
-            appCpuRate = round(float((processCpuTime_2 - processCpuTime_1) / (totalCpuTime_2 - totalCpuTime_1) * 100), 2)
+            cpu_time2 = self.get_cpu_time()
+            # appCpuRate = round(float((processCpuTime_2 - processCpuTime_1) / (totalCpuTime_2 - totalCpuTime_1) *
+            # 100), 2)
+            total_process_cpu_time = process_cpu_time2 - process_cpu_time1
+            total_cpu_time = sum([cpu_time2[i] - cpu_time1[i] for i in range(4)])
+            appCpuRate = round(float(total_process_cpu_time / total_cpu_time) * 100, 2)
+
             sysCpuRate = round(float(((totalCpuTime_2 - idleCputime_2) - (totalCpuTime_1 - idleCputime_1)) / (totalCpuTime_2 - totalCpuTime_1) * 100), 2)
             if noLog is False:
                 apm_time = datetime.datetime.now().strftime('%H:%M:%S.%f')
-                f.add_log(os.path.join(f.report_dir,'cpu_app.log'), apm_time, appCpuRate)
-                f.add_log(os.path.join(f.report_dir,'cpu_sys.log'), apm_time, sysCpuRate)
+                f.add_log(os.path.join(f.report_dir, 'cpu_app.log'), apm_time, appCpuRate)
+                f.add_log(os.path.join(f.report_dir, 'cpu_sys.log'), apm_time, sysCpuRate)
         except Exception as e:
             appCpuRate, sysCpuRate = 0, 0
             if len(d.getPid(self.deviceId, self.pkgName)) == 0:
@@ -115,6 +168,21 @@ class CPU(object):
             else:
                 logger.exception(e)
         return appCpuRate, sysCpuRate
+
+    def getAndroidCpuFreq(self, noLog=False):
+        try:
+            cpufreq = self.get_cpu_freq()
+            # print("getAndroidCpuFreq", cpufreq)
+            if noLog is False:
+                apm_time = datetime.datetime.now().strftime('%H:%M:%S.%f')
+                # print("getAndroidCpuFreqLog", cpufreq)
+                for index, cpu in enumerate(cpufreq):
+                    f.add_log(os.path.join(f.report_dir, 'cpu_freq_{}.log'.format(index)), apm_time, cpu)
+                # f.add_log(os.path.join(f.report_dir, 'cpu_freq.log'), apm_time, cpufreq)
+        except:
+            pass
+        return cpufreq
+
 
     def getiOSCpuRate(self, noLog=False):
         """get the iOS cpu rate of a process, unit:%"""
@@ -131,6 +199,11 @@ class CPU(object):
         """Get the cpu rate of a process, unit:%"""
         appCpuRate, systemCpuRate = self.getAndroidCpuRate(noLog) if self.platform == Platform.Android else self.getiOSCpuRate(noLog)
         return appCpuRate, systemCpuRate
+
+    def getCpuFreq(self, noLog=False):
+        CpuFreq = self.getAndroidCpuFreq(noLog)
+        return CpuFreq
+
 
 class Memory(object):
     def __init__(self, pkgName, deviceId, platform=Platform.Android, pid=None):
@@ -391,7 +464,7 @@ class FPS(object):
     def getAndroidFps(self, noLog=False):
         """get Android Fps, unit:HZ"""
         try:
-            monitors = FPSMonitor(device_id=self.deviceId, package_name=self.pkgName, frequency=2.0,
+            monitors = FPSMonitor(device_id=self.deviceId, package_name=self.pkgName, frequency=2,
                                   surfaceview=self.surfaceview, start_time=TimeUtils.getCurrentTimeUnderline())
             monitors.start()
             fps, jank, bigjank, collect_jank_time, collect_Stutter = monitors.stop()
@@ -462,7 +535,7 @@ class GPU(object):
                     if res_n[i] == '':
                         res_n.pop(i)
                 try:
-                    gpu_info = int(res_n[0]) / int(res_n[1]) * 100
+                    gpu_info = round(int(res_n[0]) / int(res_n[1]) * 100, 2)
                 except:
                     gpu_info = 0
                 logger.info("获取到的gpu信息是：{}".format(gpu_info))
@@ -477,7 +550,7 @@ class GPU(object):
                         if res_n[i] == '':
                             res_n.pop(i)
                     try:
-                        gpu_info = int(int(res_n[0]) / int(res_n[1]) * 100)
+                        gpu_info = round(int(res_n[0]) / int(res_n[1]) * 100, 2)
                     except:
                         gpu_info = 0
                     logger.info("获取到的gpu信息是：{}".format(gpu_info))
@@ -490,7 +563,7 @@ class GPU(object):
             if gpu_info == "":
                 gpu_info = 0
             f.add_log(os.path.join(f.report_dir, 'gpu.log'), apm_time, gpu_info)
-        return gpu_info
+        return round(gpu_info, 2)
 
 
 class iosAPM(object):
@@ -587,6 +660,19 @@ class AppPerformanceMonitor(initPerformanceService):
                 break
         return result
 
+    def collectCpuFreq(self):
+        _cpu = CPU(self.pkgName, self.deviceId, self.platform, pid=self.pid)
+        result = {}
+        while self.get_status() == 'on':
+            cpuFreq = _cpu.getCpuFreq(noLog=self.noLog)
+            result = {'cpuFreq': cpuFreq}
+            logger.info(f'cpuFreq: {result}')
+            if self.collect_all is False:
+                break
+            if self.duration > 0 and time.time() > self.end_time:
+                break
+        return result
+
     def collectMemory(self):
         _memory = Memory(self.pkgName, self.deviceId, self.platform, pid=self.pid)
         result = {}
@@ -667,7 +753,7 @@ class AppPerformanceMonitor(initPerformanceService):
             if gpu:
                 result = {'gpu': gpu}
             logger.info(f'gpu: {result}')
-            print(gpu)
+            # print(gpu)
             if self.collect_all is False:
                 break
             if self.duration > 0 and time.time() > self.end_time:
@@ -679,14 +765,19 @@ class AppPerformanceMonitor(initPerformanceService):
             case Platform.Android:
                 adb.shell(cmd='dumpsys battery reset', deviceId=self.deviceId)
                 _flow = Network(self.pkgName, self.deviceId, self.platform, pid=self.pid)
+                _cpu = CPU(self.pkgName, self.deviceId, self.platform, pid=self.pid)
+                corenum = _cpu.getCpuCoreNum()
                 data = _flow.setAndroidNet()
                 f.record_net('end', data[0], data[1])
-                scene = f.make_report(app=self.pkgName, devices=self.deviceId,
+                scene = f.make_report(app=self.pkgName, devices=self.deviceId, corenum=corenum, duration=self.duration,
                                       video=0, platform=self.platform, model='normal')
+                print("setPerfs()" + scene)
                 summary = f._setAndroidPerfs(scene)
                 summary_dict = {}
+                summary_dict['corenum'] = corenum
                 summary_dict['cpu_app'] = summary['cpuAppRate']
                 summary_dict['cpu_sys'] = summary['cpuSystemRate']
+                summary_dict['cpu_freq'] = summary['cpuFreq']
                 summary_dict['gpu'] = summary['gpu']
                 summary_dict['mem_total'] = summary['totalPassAvg']
                 summary_dict['mem_swap'] = summary['swapPassAvg']
@@ -697,6 +788,7 @@ class AppPerformanceMonitor(initPerformanceService):
                 summary_dict['net_send'] = summary['flow_send']
                 summary_dict['net_recv'] = summary['flow_recv']
                 summary_dict['cpu_charts'] = f.getCpuLog(Platform.Android, scene)
+                summary_dict['cpu_freq_charts'] = f.getCpuFreqLog(Platform.Android, scene, corenum)
                 summary_dict['gpu_charts'] = f.getGpuLog(Platform.Android, scene)
                 summary_dict['mem_charts'] = f.getMemLog(Platform.Android, scene)
                 summary_dict['mem_detail_charts'] = f.getMemDetailLog(Platform.Android, scene)
@@ -735,9 +827,10 @@ class AppPerformanceMonitor(initPerformanceService):
     def collectAll(self):
         try:
             f.clear_file()
-            process_num = 8 if self.record else 7
+            process_num = 9 if self.record else 8
             pool = multiprocessing.Pool(processes=process_num)
             pool.apply_async(self.collectCpu)
+            pool.apply_async(self.collectCpuFreq)
             pool.apply_async(self.collectGpu)
             pool.apply_async(self.collectMemory)
             pool.apply_async(self.collectMemoryDetail)
