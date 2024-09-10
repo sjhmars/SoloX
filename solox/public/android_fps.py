@@ -61,6 +61,8 @@ class SurfaceStatsCollector(object):
             self.stop_event.set()
             self.collector_thread.join()
             self.collector_thread = None
+            self.calculator_thread.join()
+            self.calculator_thread = None
             if self.fps_queue:
                 self.fps_queue.task_done()
 
@@ -158,7 +160,7 @@ class SurfaceStatsCollector(object):
         else:
             seconds = timestamps[-1][1] - timestamps[0][1]
             if seconds > 0:
-                fps = int(round((frame_count - 1) / seconds))
+                fps = round((frame_count - 1) / seconds, 2)
                 jank, bigjank = self._calculate_janky(timestamps)
             else:
                 fps = 1
@@ -193,7 +195,7 @@ class SurfaceStatsCollector(object):
             # print(first_time)
             if seconds > 0:
                 # print(seconds)
-                fps = int(round((frame_count - 1) / seconds))
+                fps = round((frame_count - 1) / seconds, 2)
                 jank, jank_time, bigjank = self._calculate_janky(timestamps)
             else:
                 fps = 1
@@ -203,7 +205,7 @@ class SurfaceStatsCollector(object):
         else:
             seconds = timestamps[-1][0] - timestamps[0][0]
             if seconds > 0:
-                fps = int(round((frame_count - 1) / seconds))
+                fps = round((frame_count - 1) / seconds, 2)
                 jank, bigjank, jank_time = self._calculate_jankey_new(timestamps)
             else:
                 fps = 1
@@ -211,8 +213,6 @@ class SurfaceStatsCollector(object):
                 bigjank = 0
                 jank_time = 0
         all_collect_time = collect_time-first_time
-        # print(all_collect_time, "总采集时间")
-        # print(collect_time, " 最后一次采集时间")
         this_jank_time = this_jank_time + jank_time
         if all_collect_time == 0:
             Stutter = 0

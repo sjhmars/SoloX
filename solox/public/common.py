@@ -97,8 +97,7 @@ class Devices:
             sdkversion = self.getSdkVersion(deviceId)
             if sdkversion and int(sdkversion) < 26:
                 result = os.popen(f"{self.adb} -s {deviceId} shell ps | {self.filterType()} {pkgName}").readlines()
-                resultList = [result[0]]
-                # print(resultList)
+                resultList = [i for i in result if i != '\n']
                 processList = ['{}:{}'.format(process.split()[1], process.split()[8]) for process in resultList]
             else:
                 result = os.popen(f"{self.adb} -s {deviceId} shell ps -ef | {self.filterType()} {pkgName}").readlines()
@@ -289,8 +288,13 @@ class File:
                                            tem=summary['tem'],
                                            corenum=summary['corenum'],
                                            temMax=summary['temMax'],
-                                           temAvg=summary['temAvg'],net_send=summary['net_send'],
-                                           net_recv=summary['net_recv'], cpu_charts=summary['cpu_charts'],
+                                           temAvg=summary['temAvg'],
+                                           net_send=summary['net_send'],
+                                           net_recv=summary['net_recv'],
+                                           net_send_avg=summary['net_send_avg'], net_recv_avg=summary['net_recv_avg'],
+                                           net_send_total=summary['net_send_total'],
+                                           net_recv_total=summary['net_recv_total'],
+                                           cpu_charts=summary['cpu_charts'],
                                            cpufreq_charts=summary['cpufreq_charts'],
                                            mem_charts=summary['mem_charts'], net_charts=summary['net_charts'],
                                            battery_charts=summary['battery_charts'], fps_charts=summary['fps_charts'],
@@ -551,7 +555,7 @@ class File:
             targetDic['bigjank'] = self.readLog(scene=scene, filename='bigjank.log')[0]
             Stutter_date_dict = self.readLog(scene=scene, filename='Stutter.log')[0]
             for item in Stutter_date_dict:
-                item['y'] = round((item['y'] * 100), 3)
+                item['y'] = round((item['y'] * 100), 2)
             targetDic['Stutter'] = Stutter_date_dict
             result = {'status': 1, 'fps': targetDic['fps'], 'jank': targetDic['jank'], 'bigjank': targetDic['bigjank'],
                       'Stutter': targetDic['Stutter']}
@@ -623,7 +627,10 @@ class File:
 
         totalPassData = self.readLog(scene=scene, filename=f'mem_total.log')[1]
         totalPassData.sort()
-        maxTotalPass = f'{totalPassData[totalPassData.__len__() - 1]}MB'
+        if totalPassData.__len__() != 0:
+            maxTotalPass = f'{totalPassData[totalPassData.__len__() - 1]}MB'
+        else:
+            maxTotalPass = 0
 
         if totalPassData.__len__() > 0:
             swapPassData = self.readLog(scene=scene, filename=f'mem_swap.log')[1]
@@ -631,7 +638,27 @@ class File:
             swapPassAvg = f'{round(sum(swapPassData) / len(swapPassData), 2)}MB'
         else:
             totalPassAvg, swapPassAvg = 0, 0
-
+        if os.path.exists(os.path.join(self.report_dir, scene, 'end_net.json')):
+            f_pre = open(os.path.join(self.report_dir, scene, 'pre_net.json'))
+            f_end = open(os.path.join(self.report_dir, scene, 'end_net.json'))
+            json_pre = json.loads(f_pre.read())
+            json_end = json.loads(f_end.read())
+            send = json_end['send'] - json_pre['send']
+            recv = json_end['recv'] - json_pre['recv']
+        else:
+            send, recv = 0, 0
+        flowSendData = self.readLog(scene=scene, filename='upflow.log')
+        flowRecvData = self.readLog(scene=scene, filename='downflow.log')
+        flowSendAvg = f'{round(calculate_flow_avg(flowSendData, send=send), 3)}KB'
+        flowRecvAvg = f'{round(calculate_flow_avg(flowRecvData, recv=recv), 3)}KB'
+        if flowSendData.__len__() > 0:
+            totalFlowSend = f'{round(max(flowSendData[1]), 2)}KB'
+        else:
+            totalFlowSend = 0
+        if flowRecvData.__len__() > 0:
+            totalFlowRecv = f'{round(max(flowRecvData[1]), 2)}KB'
+        else:
+            totalFlowRecv = 0
         fpsData = self.readLog(scene=scene, filename=f'fps.log')[1]
         jankData = self.readLog(scene=scene, filename=f'jank.log')[1]
         bigjankData = self.readLog(scene=scene, filename=f'bigjank.log')[1]
@@ -669,11 +696,11 @@ class File:
         else:
             Stutter = '0.0%'
         if fpsData.__len__() > 0:
-            fpsAvg = f'{int(sum(fpsData[1:]) / (len(fpsData)-1))}HZ/s'
+            fpsAvg = f'{round(sum(fpsData[1:]) / (len(fpsData) - 1), 2)}HZ/s'
             jankAvg = f'{int(sum(jankData))}'
             bigjankAvg = f'{int(sum(bigjankData))}'
         else:
-            fpsAvg, jankAvg, bigjankData = 0, 0, 0
+            fpsAvg, jankAvg, bigjankAvg = 0, 0, 0
 
         if os.path.exists(os.path.join(self.report_dir, scene, 'end_net.json')):
             f_pre = open(os.path.join(self.report_dir, scene, 'pre_net.json'))
@@ -699,6 +726,10 @@ class File:
         apm_dict['maxTotalPass'] = maxTotalPass
         apm_dict['flow_send'] = flowSend
         apm_dict['flow_recv'] = flowRecv
+        apm_dict['flow_send_avg'] = flowSendAvg
+        apm_dict['flow_recv_avg'] = flowRecvAvg
+        apm_dict['flow_send_total'] = totalFlowSend
+        apm_dict['flow_recv_total'] = totalFlowRecv
         apm_dict['batteryLevel'] = batteryLevel
         apm_dict['batteryTeml'] = batteryTeml
         apm_dict['batteryTemlMax'] = batteryTemlMax
@@ -1006,3 +1037,22 @@ class Scrcpy:
                 break
         cap.release()
         cv2.destroyAllWindows()
+
+
+def calculate_flow_avg(flowData, send=None, recv=None):
+    if len(flowData) > 0:
+        time_data = flowData[0]
+        first_time_str = time_data[0].get('x')
+        end_time_str = time_data[-1].get('x')
+        timestampFirst = first_time_str
+        timestampEnd = end_time_str
+        First_time = datetime.strptime(timestampFirst, "%H:%M:%S.%f")
+        End_time = datetime.strptime(timestampEnd, "%H:%M:%S.%f")
+        time_difference = End_time - First_time
+        total_seconds = time_difference.total_seconds()
+        if send is not None:
+            return send / total_seconds
+        elif recv is not None:
+            return recv / total_seconds
+    else:
+        return 0

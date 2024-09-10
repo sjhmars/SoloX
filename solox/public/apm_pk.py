@@ -54,11 +54,11 @@ class CPU_PK:
 
     def get_cpu_freq(self, deviceId):
         try:
-            # »ñÈ¡Ã¿¸öCPUºËĞÄµÄÊ¹ÓÃÂÊ
+            # $)A;qH!C?8vCPU:KPD5DJ9SCBJ
             # cmd = f'adb -s {device} shell "top -n 1 | grep -E \'Cpu[0-9]\'"'
             cmd = 'cat /sys/devices/system/cpu/cpu*/cpufreq/scaling_cur_freq'
             res = adb.shell(cmd=cmd, deviceId=deviceId)
-            time.sleep(1)  # Ìí¼ÓÑÓ³ÙÒÔÈ·±£ÃüÁîµÄÊä³öÒÑ¾­±»ÍêÈ«Ìî³ä
+            time.sleep(1)  # $)ALm<SQS3YRTH71#C|An5DJd3vRQ>-1;MjH+Ln3d
             res = res.split('\n')
             cpu_usage = []
             for line in res:

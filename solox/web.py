@@ -31,7 +31,7 @@ thread_lock = Lock()
 @socketio.on('connect', namespace='/logcat')
 def connect():
     socketio.emit('start connect', {'data': 'Connected'}, namespace='/logcat')
-    logDir = os.path.join(os.getcwd(),'adblog')
+    logDir = os.path.join(os.getcwd(), 'adblog')
     if not os.path.exists(logDir):
         os.mkdir(logDir)
     global thread
@@ -45,12 +45,12 @@ def backgroundThread():
     global thread
     try:
         current_time = time.strftime("%Y%m%d%H", time.localtime())
-        logPath = os.path.join(os.getcwd(),'adblog',f'{current_time}.log')
+        logPath = os.path.join(os.getcwd(), 'adblog', f'{current_time}.log')
         logcat = subprocess.Popen(f'adb logcat *:E > {logPath}', stdout=subprocess.PIPE,
                                   shell=True)
         with open(logPath, "r") as f:
             while thread:
-                socketio.sleep(1)
+                socketio.sleep(3)
                 for line in f.readlines():
                     socketio.emit('message', {'data': line}, namespace='/logcat')
         if logcat.poll() == 0:
@@ -66,13 +66,14 @@ def disconnect():
     thread = False
     disconnect()
 
+
 def ip() -> str:
     try:
         ip = socket.gethostbyname(socket.gethostname())
     except:
         logger.info('hostname:{}'.format(socket.gethostname()))
         logger.warning('config [127.0.0.1 hostname] in /etc/hosts file')
-        ip = '127.0.0.1'    
+        ip = '127.0.0.1'
     return ip
 
 
@@ -85,6 +86,7 @@ def listen(port):
         logger.info('you can start solox : python -m solox --host={ip} --port={port}')
         return False
     return True
+
 
 def status(host: str, port: int):
     r = requests.get('http://{}:{}'.format(host, port), timeout=2.0)
@@ -106,15 +108,18 @@ def open_url(host: str, port: int):
 def start(host: str, port: int):
     socketio.run(app, host=host, debug=False, port=port)
 
+
 def main(host=ip(), port=50003):
+    pool = multiprocessing.Pool(processes=2)
     try:
-        pool = multiprocessing.Pool(processes=2)
         pool.apply_async(start, (host, port))
         pool.apply_async(open_url, (host, port))
         pool.close()
         pool.join()
     except KeyboardInterrupt:
         logger.info('stop solox success')
+        pool.terminate()  # 停止所有的子进程
         sys.exit()
     except Exception as e:
-        logger.exception(e)            
+        logger.exception(e)
+        pool.terminate()  # 如果有任何异常，也停止所有的子进程

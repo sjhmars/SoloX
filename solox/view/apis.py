@@ -7,7 +7,7 @@ from flask import request, make_response
 from logzero import logger
 from flask import Blueprint
 from solox import __version__
-from solox.public.apm import CPU, Memory, Network, FPS, Battery, GPU, Target
+from solox.public.apm import CPU, Memory, Network, FPS, Battery, GPU, Target, Singleton
 from solox.public.apm_pk import CPU_PK, MEM_PK, Flow_PK, FPS_PK
 from solox.public.common import Devices, File, Method, Install, Platform, Scrcpy
 
@@ -82,6 +82,7 @@ def deviceids():
                               'pkgnames': pkgnames,
                               'device_detail': device_detail,
                               }
+                    print(result)
                 else:
                     result = {'status': 0, 'msg': 'no devices'}
             case Platform.iOS:
@@ -205,7 +206,7 @@ def getCpuRate():
                 process = method._request(request, 'process')
                 pid = None
                 deviceId = d.getIdbyDevice(device, platform)
-                if process and platform == Platform.Android :
+                if process and platform == Platform.Android:
                     pid = process.split(':')[0]
                 cpu = CPU(pkgName=pkgname, deviceId=deviceId, platform=platform, pid=pid)
                 appCpuRate, systemCpuRate = cpu.getCpuRate()
@@ -284,7 +285,7 @@ def getMemory():
                 process = method._request(request, 'process')
                 pid = None
                 deviceId = d.getIdbyDevice(device, platform)
-                if process and platform == Platform.Android :
+                if process and platform == Platform.Android:
                     pid = process.split(':')[0]
                 mem = Memory(pkgName=pkgname, deviceId=deviceId, platform=platform, pid=pid)
                 totalPass, swapPass = mem.getProcessMemory()
@@ -327,7 +328,7 @@ def setNetWorkData():
         wifi = False if wifi_switch == 'false' else True
         deviceId = d.getIdbyDevice(device, platform)
         pid = None
-        if process and platform == Platform.Android :
+        if process and platform == Platform.Android:
             pid = process.split(':')[0]
         network = Network(pkgName=pkgname, deviceId=deviceId, platform=platform, pid=pid)
         data = network.setAndroidNet(wifi=wifi)
@@ -371,7 +372,7 @@ def getNetWorkData():
                 if process and platform == Platform.Android :
                     pid = process.split(':')[0]
                 network = Network(pkgName=pkgname, deviceId=deviceId, platform=platform, pid=pid)
-                data = network.getNetWorkData(wifi=wifi,noLog=False)
+                data = network.getNetWorkData(wifi=wifi, noLog=False)
                 result = {'status': 1, 'upflow': data[0], 'downflow': data[1]}
     except Exception as e:
         logger.error('get network data failed')
@@ -488,6 +489,7 @@ def makeReport():
         f.make_report(app=app, devices=devices, corenum=corenum, video=video, platform=platform, model=model)
         result = {'status': 1}
         FPS.clear_up_first_time()
+        Singleton.clear_all_instances()
     except Exception as e:
         logger.exception(e)
         result = {'status': 0, 'msg': str(e)}
@@ -545,6 +547,10 @@ def exportAndroidHtml():
     AvgTemperature = method._request(request, 'AvgTemperature')
     net_send = method._request(request, 'net_send')
     net_recv = method._request(request, 'net_recv')
+    flow_send_avg = method._request(request, 'flow_send_avg')
+    flow_recv_avg = method._request(request, 'flow_recv_avg')
+    flow_send_total = method._request(request, 'flow_send_total')
+    flow_recv_total = method._request(request, 'flow_recv_total')
     try:
         summary_dict = {}
         summary_dict['cpu_app'] = cpu_app
@@ -564,6 +570,10 @@ def exportAndroidHtml():
         summary_dict['temAvg'] = AvgTemperature
         summary_dict['net_send'] = net_send
         summary_dict['net_recv'] = net_recv
+        summary_dict['net_send_avg'] = flow_send_avg
+        summary_dict['net_recv_avg'] = flow_recv_avg
+        summary_dict['net_send_total'] = flow_send_total
+        summary_dict['net_recv_total'] = flow_recv_total
         summary_dict['cpu_charts'] = f.getCpuLog(Platform.Android, scene)
         summary_dict['cpufreq_charts'] = f.getCpuFreqLog(Platform.Android, scene, corenum)
         summary_dict['mem_charts'] = f.getMemLog(Platform.Android, scene)

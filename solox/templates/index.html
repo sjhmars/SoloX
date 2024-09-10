@@ -169,7 +169,7 @@ SoloX - Application Performance Monitoring
                                 </span>
                                 {% endif %}
                             </label>
-                            <label class="dropdown-item cursor-pointer"><input class="form-check-input m-0 me-2 cursor-pointer" id="fps_checkbox" type="checkbox" name="fps" checked> 
+                            <label class="dropdown-item cursor-pointer"><input class="form-check-input m-0 me-2 cursor-pointer" id="fps_checkbox" type="checkbox" name="fps" checked>
                                 <svg t="1702629928532" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="27477" width="320" height="320"><path d="M163.7 749.9c-63.9 0-115.9-52-115.9-116s52-116 115.9-116c63.9 0 116 52 116 116s-52.1 116-116 116z m0-161.9c-25.4 0-46 20.6-46 46s20.6 46 46 46 46-20.6 46-46-20.6-46-46-46zM393.1 538.7c-63.9 0-116-52-116-116 0-63.9 52-115.9 116-115.9 63.9 0 115.9 52 115.9 115.9 0.1 63.9-51.9 116-115.9 116z m0-162c-25.4 0-46 20.6-46 46s20.6 46 46 46 46-20.6 46-46c0-25.3-20.6-46-46-46zM859.9 504.4c-63.9 0-115.9-52-115.9-115.9 0-63.9 52-116 115.9-116 63.9 0 116 52 116 116 0 63.9-52 115.9-116 115.9z m0-161.9c-25.4 0-46 20.6-46 46s20.6 46 46 46 46-20.6 46-46-20.6-46-46-46z" fill="#706D7E" p-id="27478"></path><path d="M220.9 611.7c-8.9 0-17.9-3.4-24.7-10.2-13.7-13.7-13.7-35.8 0-49.5l106.6-106.6c13.7-13.7 35.8-13.7 49.5 0 13.7 13.7 13.7 35.8 0 49.5L245.7 601.4c-6.9 6.9-15.8 10.3-24.8 10.3zM552.7 580c-8.9 0-17.9-3.4-24.7-10.2L441.2 483c-13.7-13.7-13.7-35.8 0-49.5 13.6-13.7 35.8-13.7 49.5 0l86.8 86.8c13.7 13.7 13.7 35.8 0 49.5-6.9 6.7-15.8 10.2-24.8 10.2zM691 592.4c-8.9 0-17.9-3.4-24.7-10.2-13.7-13.7-13.7-35.8 0-49.5L778 421c13.6-13.7 35.8-13.7 49.5 0 13.7 13.7 13.7 35.8 0 49.5L715.7 582.1c-6.8 6.9-15.8 10.3-24.7 10.3z" fill="#706D7E" p-id="27479"></path><path d="M620.1 714.8c-63.9 0-116-52-116-116s52-116 116-116c63.9 0 115.9 52 115.9 116s-52 116-115.9 116z m0-162c-25.4 0-46 20.6-46 46s20.6 46 46 46 46-20.6 46-46c0-25.3-20.6-46-46-46z" fill="#5AC0F9" p-id="27480"></path></svg>
                                 {% if lan == 'cn' %} 流畅度 {% else %} FPS {% endif %}
                                 {% if platform == 'Android' %}
@@ -269,19 +269,19 @@ SoloX - Application Performance Monitoring
         </div>
     </div>
     <div class="apm-data mt-1" style="width: 75%;">
-        <div id="cpu" class="mb-3 cpu" style="min-width:400px;height:310px"></div>
-        <div id="cpufreq" class="mb-3 cpufreq" style="min-width:400px;height:310px"></div>
-        <div id="gpu" class="mb-3 gpu" style="min-width:400px;height:310px"></div>
         {% if platform == 'Android' %}
+        <div id="fps" class="mb-3 fps" style="min-width:400px;height:300px"></div>
         <div id="mem_android"  class="mb-3 mem" style="min-width:400px;height:310px"></div>
         <div id="mem_detail"   class="mb-3 mem_detail" style="min-width:400px;height:310px;display: none;"></div>
-        <div id="fps" class="mb-3 fps" style="min-width:400px;height:300px"></div>
         <div id="battery_android" class="mb-3 battery" style="min-width:400px;height:310px"></div>
         {% else %}
         <div id="mem_ios"  class="mb-3 mem" style="min-width:400px;height:310px"></div>
         <div id="fps_ios" class="mb-3 fps" style="min-width:400px;height:310px"></div>
         <div id="battery_ios" class="mb-3 battery" style="min-width:400px;height:310px"></div>
         {% endif %}
+        <div id="cpu" class="mb-3 cpu" style="min-width:400px;height:310px"></div>
+        <div id="cpufreq" class="mb-3 cpufreq" style="min-width:400px;height:310px"></div>
+        <div id="gpu" class="mb-3 gpu" style="min-width:400px;height:310px"></div>
         <div id="network" class="Network-Data mb-3" style="min-width:400px;height:310px"></div>
     </div>
 </div>
@@ -533,7 +533,7 @@ SoloX - Application Performance Monitoring
                 }
                 },
             success: function (data) {
-                console.log(data);
+                {#console.log(data);#}
                 if(data['status'] != 1 ) {
                     if(lan == 'cn' ){
                         SwalFire('error', '连接失败','请检查当前移动设备的是否连接了PC端', 5000);
@@ -548,7 +548,6 @@ SoloX - Application Performance Monitoring
                         $('.select-app').append('<option>'+data['pkgnames'][i].trim()+'</option>');
                     }
                     corenum = data['device_detail']['cpuinfo'];
-                    console.log("initializeEnv", corenum);
                     $('#brand').text(data['device_detail']['brand']);
                     $('#device_name').text(data['device_detail']['name']);
                     $('#cpuinfo').text(data['device_detail']['cpuinfo']);
@@ -566,11 +565,7 @@ SoloX - Application Performance Monitoring
             // 此处加同步是为了获取CPU核心数来显示CPU核心频率的图表
             function(){
             seriesCpuFreq = [];
-            console.error("走了");
-            console.error("走seriesGetCpuFreq");
-                console.error("此时corenum", corenum);
                 for (var a = 0; a < corenum; a += 1) {
-                console.error('seriesGetCpuFreq' + a);
                 seriesCpuFreq.push({
                     name: 'cpufreq' + a,
                     pointInterval: 120 * 1000,
@@ -614,7 +609,7 @@ SoloX - Application Performance Monitoring
                window.clearTimeout(timerQ);
             },
             success: function (data) {
-                console.log(data)
+                {#console.log(data)#}
                 if(stop == false){
                     if(data['status'] == 1){
                         try {
@@ -644,7 +639,6 @@ SoloX - Application Performance Monitoring
 
     function getCpuFreq(pkgname,device){
         var process = '';
-        console.log("走到了getcpuFreq");
         if(platform == 'Android'){
             process = $('.select-pid').val()
         }
@@ -664,8 +658,6 @@ SoloX - Application Performance Monitoring
                window.clearTimeout(timerQ);
             },
             success: function (data) {
-                console.log("getCpuFreq", data);
-                console.log("corenum", corenum);
                 if(stop == false){
                     if(data['status'] == 1){
                         try {
@@ -706,7 +698,7 @@ SoloX - Application Performance Monitoring
             },
             success: function (data) {
                 if(stop == false){
-                    console.log(data)
+                    {#console.log(data)#}
                     if(data['status'] == 1){
                         try {
                             var series= gpu_chart.series[0];
@@ -742,7 +734,7 @@ SoloX - Application Performance Monitoring
             },
             success: function (data) {
                 if(stop == false){
-                    console.log(data)
+                    {#console.log(data)#}
                     if(data['status'] == 1){
                         try {
                             if(platform == 'Android'){
@@ -804,7 +796,7 @@ SoloX - Application Performance Monitoring
                window.clearTimeout(timerQ);
             },
             success: function (data) {
-                console.log(data)
+                {#console.log(data)#}
                 if(stop == false){
                     if(data['status'] == 1){
                         try {
@@ -854,7 +846,7 @@ SoloX - Application Performance Monitoring
                window.clearTimeout(timerQ);
             },
             success: function (data) {
-                console.log(data)
+                {#console.log(data)#}
                 if(stop == false){
                     if(data['status'] == 1){
                         try {
@@ -994,7 +986,7 @@ SoloX - Application Performance Monitoring
                window.clearTimeout(timerQ);
             },
             success: function (data) {
-                console.log(data)
+                {#console.log(data)#}
                 if(stop == false){
                     if(data['status'] == 1){
                         try {
@@ -1483,7 +1475,6 @@ SoloX - Application Performance Monitoring
                 break;
             case 'cpufreq':
                 seriesFinal = seriesCpuFreq;
-                console.error("走了")
                 legend = true;
                 yAxis = yAxis_plot;
                 break;
@@ -1710,7 +1701,6 @@ SoloX - Application Performance Monitoring
 
     function collectCpuFreq(device,pkgname){
         var cpufreq_checkbox = $('#cpufreq_checkbox').is(':checked');
-        console.error(cpufreq_checkbox);
         if(cpufreq_checkbox) {
             cpuFreqInitialize();
             let type = 'cpufreq';
@@ -1747,7 +1737,7 @@ SoloX - Application Performance Monitoring
 
     function collectMemDetail(device,pkgname){
         var mem_detail_checkbox = $('#mem_detail_checkbox').is(':checked');
-        console.error("我点了内存");
+        {#console.error("我点了内存");#}
         if(mem_detail_checkbox){
             memDetailInitialize();
             mem_detail_chart = collectPers(device,pkgname,'mem_detail','Memory Detail (MB)',getMemDetailPss(pkgname,device));
@@ -1766,7 +1756,7 @@ SoloX - Application Performance Monitoring
     function collectFps(device,pkgname){
         var fps_checkbox = $('#fps_checkbox').is(':checked');
         var fps_switch = $('#fps-switch').is(':checked');
-        console.log(fps_switch)
+        {#console.log(fps_switch)#}
         if(fps_checkbox){
             fpsInitialize();
             if(platform == 'Android'){
@@ -1893,12 +1883,15 @@ SoloX - Application Performance Monitoring
                     record()
                 }
             }
-            collectCpu(device,pkgname)
+            collectCpu(device,pkgname);
             collectCpuFreq(device,pkgname);
             collectMem(device,pkgname);
             
             if(platform == 'Android'){
-                collectMemDetail(device,pkgname)
+                var isCheck = $('#mem_detail_checkbox').is(':checked');
+                if(isCheck){
+                    collectMemDetail(device, pkgname);
+                }
             }
             collectNetwork(device,pkgname);
             collectFps(device,pkgname);
@@ -1919,22 +1912,40 @@ SoloX - Application Performance Monitoring
         }});
 
     var status = false;
-    var socket
+    let socket = null;
+
+
     if(platform == 'Android'){
-        socket = io.connect('http://' + document.domain + ':' + location.port + '/logcat',{'forceNew':true });
-        
+        socket = io.connect('http://' + document.domain + ':' + location.port + '/logcat',{
+            'forceNew':true,
+            'pingInterval': 3000,  // 每 3 秒发送一次心跳包
+            'pingTimeout': 60000    // 如果 60 秒内没有收到心跳包响应，则断开连接
+        });
+        console.log("socket连接")
     }
+
+    let logBuffer = '';
+
     function startLogcat() {
         let device = $('.select-device').val();
         if(device){
             $('#run-logcat').hide();
             $('#stop-logcat').show();
-            socket = io.connect('http://' + document.domain + ':' + location.port + '/logcat',{'forceNew':true });
-            socket.on('message', function (msg) {
-                if(status){
-                    $('#logcat-content').prepend(msg.data + '<br>');
-                }
-            });
+            if(!socket) {
+                socket = io.connect('http://' + document.domain + ':' + location.port + '/logcat', {'forceNew': true});
+                socket.on('message', function (msg) {
+                    if (status) {
+                        logBuffer += msg.data + '<br>';
+                        {#$('#logcat-content').prepend(msg.data + '<br>');#}
+                    }
+                });
+                setInterval(function (){
+                    if(logBuffer) {
+                        $('#logcat-content').prepend(logBuffer);
+                        logBuffer = '';
+                    }
+            }, 1000);
+            }
         }else{
             SwalFire('error','Execution Error','No device selected',2000)
         }
@@ -1946,6 +1957,7 @@ SoloX - Application Performance Monitoring
         status = false;
         // socket.emit('disconnect_request');
         socket.close()
+        socket = null
 
     }
 
@@ -1955,7 +1967,7 @@ SoloX - Application Performance Monitoring
         textValue.value = $("#logcat-content").text(); 
         textValue.select();
         var result = document.execCommand('copy');
-        console.log(result)
+        {#console.log(result)#}
         document.body.removeChild(textValue);
         SwalFire('success','Copy Success','',1000);
     }
@@ -2014,7 +2026,7 @@ SoloX - Application Performance Monitoring
                 },
                 success: function (data) {
                     if(data['status']==1){
-                        console.log(data['time'])
+                        {#console.log(data['time'])#}
                         $('#startup-time-content').text(data['time']);
                     }else{
                         SwalFire('error','Execution Error',data['msg'],2000)
@@ -2045,7 +2057,7 @@ SoloX - Application Performance Monitoring
                 },
                 success: function (data) {
                     if(data['status']==1){
-                        console.log(data['time'])
+                        {#console.log(data['time'])#}
                         $('#startup-time-content').text(data['time']);
                     }else{
                         SwalFire('error','Execution Error',data['msg'],2000)
@@ -2089,7 +2101,7 @@ SoloX - Application Performance Monitoring
                     SwalLoading('Install App!','Installing file to device, please wait a moment.');
                 },
                 success: function (data) {
-                    console.log(data);
+                    {#console.log(data);#}
                     if(data['status'] != 1 ) {
                         SwalFire('error', 'Install failed !', data['msg'], 2000);
                     }else{
@@ -2122,7 +2134,7 @@ SoloX - Application Performance Monitoring
                 SwalLoading('Install App!','Installing file to device, please wait。');
                 },
             success: function (data) {
-                console.log(data);
+                {#console.log(data);#}
                 if(data['status'] != 1 ) {
                     SwalFire('error', 'Install failed !', data['msg'], 2000);
                 }else{

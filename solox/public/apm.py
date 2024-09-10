@@ -16,6 +16,7 @@ d = Devices()
 f = File()
 m = Method()
 
+
 class Target:
     CPU = 'cpu'
     CPUFreq = 'cpufreq'
@@ -26,7 +27,22 @@ class Target:
     FPS = 'fps'
     GPU = 'gpu'
 
-class CPU(object):
+
+class Singleton(type):
+    _instances = {}
+
+    def __call__(cls, *args, **kwargs):
+        key = (cls, args, tuple(sorted(kwargs.items())))
+        if key not in cls._instances:
+            cls._instances[key] = super().__call__(*args, **kwargs)
+        return cls._instances[key]
+
+    @classmethod
+    def clear_all_instances(cls):
+        cls._instances.clear()
+
+
+class CPU(metaclass=Singleton):
 
     def __init__(self, pkgName, deviceId, platform=Platform.Android, pid=None):
         self.pkgName = pkgName
@@ -79,7 +95,7 @@ class CPU(object):
         logger.info(idleCpu)
         sysCpu = self.getTotalCpuStat() - idleCpu
         return sysCpu
-    
+
     def getIdleCpuStat(self):
         """get the total cpu usage at a certain time"""
         cmd = 'cat /proc/stat |{} ^cpu'.format(d.filterType())
@@ -156,7 +172,8 @@ class CPU(object):
             total_cpu_time = sum([cpu_time2[i] - cpu_time1[i] for i in range(4)])
             appCpuRate = round(float(total_process_cpu_time / total_cpu_time) * 100, 2)
 
-            sysCpuRate = round(float(((totalCpuTime_2 - idleCputime_2) - (totalCpuTime_1 - idleCputime_1)) / (totalCpuTime_2 - totalCpuTime_1) * 100), 2)
+            sysCpuRate = round(float(((totalCpuTime_2 - idleCputime_2) - (totalCpuTime_1 - idleCputime_1)) / (
+                        totalCpuTime_2 - totalCpuTime_1) * 100), 2)
             if noLog is False:
                 apm_time = datetime.datetime.now().strftime('%H:%M:%S.%f')
                 f.add_log(os.path.join(f.report_dir, 'cpu_app.log'), apm_time, appCpuRate)
@@ -183,7 +200,6 @@ class CPU(object):
             pass
         return cpufreq
 
-
     def getiOSCpuRate(self, noLog=False):
         """get the iOS cpu rate of a process, unit:%"""
         apm = iosAPM(self.pkgName, self.deviceId)
@@ -191,13 +207,14 @@ class CPU(object):
         sysCpuRate = round(float(apm.getPerformance(apm.cpu)[1]), 2)
         if noLog is False:
             apm_time = datetime.datetime.now().strftime('%H:%M:%S.%f')
-            f.add_log(os.path.join(f.report_dir,'cpu_app.log'), apm_time, appCpuRate)
-            f.add_log(os.path.join(f.report_dir,'cpu_sys.log'), apm_time, sysCpuRate)
+            f.add_log(os.path.join(f.report_dir, 'cpu_app.log'), apm_time, appCpuRate)
+            f.add_log(os.path.join(f.report_dir, 'cpu_sys.log'), apm_time, sysCpuRate)
         return appCpuRate, sysCpuRate
 
     def getCpuRate(self, noLog=False):
         """Get the cpu rate of a process, unit:%"""
-        appCpuRate, systemCpuRate = self.getAndroidCpuRate(noLog) if self.platform == Platform.Android else self.getiOSCpuRate(noLog)
+        appCpuRate, systemCpuRate = self.getAndroidCpuRate(
+            noLog) if self.platform == Platform.Android else self.getiOSCpuRate(noLog)
         return appCpuRate, systemCpuRate
 
     def getCpuFreq(self, noLog=False):
@@ -205,7 +222,7 @@ class CPU(object):
         return CpuFreq
 
 
-class Memory(object):
+class Memory(metaclass=Singleton):
     def __init__(self, pkgName, deviceId, platform=Platform.Android, pid=None):
         self.pkgName = pkgName
         self.deviceId = deviceId
@@ -228,13 +245,13 @@ class Memory(object):
             totalPass = round(float(float(m_total.group(1))) / 1024, 2)
             swapPass = round(float(float(m_swap.group(1))) / 1024, 2)
         except Exception as e:
-            totalPass, swapPass= 0, 0
+            totalPass, swapPass = 0, 0
             if len(d.getPid(self.deviceId, self.pkgName)) == 0:
                 logger.error('[Memory] {} : No process found'.format(self.pkgName))
             else:
                 logger.exception(e)
         return totalPass, swapPass
-    
+
     def getAndroidMemoryDetail(self, noLog=False):
         """Get the Android detail memory ,unit:MB"""
         try:
@@ -265,13 +282,13 @@ class Memory(object):
             )
             if noLog is False:
                 apm_time = datetime.datetime.now().strftime('%H:%M:%S.%f')
-                f.add_log(os.path.join(f.report_dir,'mem_java_heap.log'), apm_time, memory_dict.get('java_heap'))
-                f.add_log(os.path.join(f.report_dir,'mem_native_heap.log'), apm_time, memory_dict.get('native_heap'))
-                f.add_log(os.path.join(f.report_dir,'mem_code_pss.log'), apm_time, memory_dict.get('code_pss'))
-                f.add_log(os.path.join(f.report_dir,'mem_stack_pss.log'), apm_time, memory_dict.get('stack_pss'))
-                f.add_log(os.path.join(f.report_dir,'mem_graphics_pss.log'), apm_time, memory_dict.get('graphics_pss'))
-                f.add_log(os.path.join(f.report_dir,'mem_private_pss.log'), apm_time, memory_dict.get('private_pss'))
-                f.add_log(os.path.join(f.report_dir,'mem_system_pss.log'), apm_time, memory_dict.get('system_pss'))
+                f.add_log(os.path.join(f.report_dir, 'mem_java_heap.log'), apm_time, memory_dict.get('java_heap'))
+                f.add_log(os.path.join(f.report_dir, 'mem_native_heap.log'), apm_time, memory_dict.get('native_heap'))
+                f.add_log(os.path.join(f.report_dir, 'mem_code_pss.log'), apm_time, memory_dict.get('code_pss'))
+                f.add_log(os.path.join(f.report_dir, 'mem_stack_pss.log'), apm_time, memory_dict.get('stack_pss'))
+                f.add_log(os.path.join(f.report_dir, 'mem_graphics_pss.log'), apm_time, memory_dict.get('graphics_pss'))
+                f.add_log(os.path.join(f.report_dir, 'mem_private_pss.log'), apm_time, memory_dict.get('private_pss'))
+                f.add_log(os.path.join(f.report_dir, 'mem_system_pss.log'), apm_time, memory_dict.get('system_pss'))
         except Exception as e:
             memory_dict = dict(
                 java_heap=0,
@@ -300,12 +317,13 @@ class Memory(object):
         totalPass, swapPass = self.getAndroidMemory() if self.platform == Platform.Android else self.getiOSMemory()
         if noLog is False:
             apm_time = datetime.datetime.now().strftime('%H:%M:%S.%f')
-            f.add_log(os.path.join(f.report_dir,'mem_total.log'), apm_time, totalPass)
+            f.add_log(os.path.join(f.report_dir, 'mem_total.log'), apm_time, totalPass)
             if self.platform == Platform.Android:
-                f.add_log(os.path.join(f.report_dir,'mem_swap.log'), apm_time, swapPass)
+                f.add_log(os.path.join(f.report_dir, 'mem_swap.log'), apm_time, swapPass)
         return totalPass, swapPass
 
-class Battery(object):
+
+class Battery(metaclass=Singleton):
     def __init__(self, deviceId, platform=Platform.Android):
         self.deviceId = deviceId
         self.platform = platform
@@ -330,25 +348,25 @@ class Battery(object):
         level = int(re.findall(u'level:\s?(\d+)', output)[0])
         temperature = int(re.findall(u'temperature:\s?(\d+)', output)[0]) / 10
         if noLog is False:
-             apm_time = datetime.datetime.now().strftime('%H:%M:%S.%f')
-             f.add_log(os.path.join(f.report_dir,'battery_level.log'), apm_time, level)
-             f.add_log(os.path.join(f.report_dir, 'battery_tem.log'), apm_time, temperature)
+            apm_time = datetime.datetime.now().strftime('%H:%M:%S.%f')
+            f.add_log(os.path.join(f.report_dir, 'battery_level.log'), apm_time, level)
+            f.add_log(os.path.join(f.report_dir, 'battery_tem.log'), apm_time, temperature)
         return level, temperature
 
     def getiOSBattery(self, noLog=False):
         """Get ios battery info, unit:%"""
-        d  = tidevice.Device(udid=self.deviceId)
-        ioDict =  d.get_io_power()
+        d = tidevice.Device(udid=self.deviceId)
+        ioDict = d.get_io_power()
         tem = m._setValue(ioDict['Diagnostics']['IORegistry']['Temperature'])
         current = m._setValue(abs(ioDict['Diagnostics']['IORegistry']['InstantAmperage']))
         voltage = m._setValue(ioDict['Diagnostics']['IORegistry']['Voltage'])
         power = current * voltage / 1000
         if noLog is False:
             apm_time = datetime.datetime.now().strftime('%H:%M:%S.%f')
-            f.add_log(os.path.join(f.report_dir,'battery_tem.log'), apm_time, tem) # unknown
-            f.add_log(os.path.join(f.report_dir,'battery_current.log'), apm_time, current) #mA
-            f.add_log(os.path.join(f.report_dir,'battery_voltage.log'), apm_time, voltage) #mV
-            f.add_log(os.path.join(f.report_dir,'battery_power.log'), apm_time, power)
+            f.add_log(os.path.join(f.report_dir, 'battery_tem.log'), apm_time, tem)  # unknown
+            f.add_log(os.path.join(f.report_dir, 'battery_current.log'), apm_time, current)  # mA
+            f.add_log(os.path.join(f.report_dir, 'battery_voltage.log'), apm_time, voltage)  # mV
+            f.add_log(os.path.join(f.report_dir, 'battery_power.log'), apm_time, power)
         return tem, current, voltage, power
 
     def recoverBattery(self):
@@ -356,7 +374,8 @@ class Battery(object):
         cmd = 'dumpsys battery reset'
         adb.shell(cmd=cmd, deviceId=self.deviceId)
 
-class Network(object):
+
+class Network(metaclass=Singleton):
 
     def __init__(self, pkgName, deviceId, platform=Platform.Android, pid=None):
         self.pkgName = pkgName
@@ -384,7 +403,8 @@ class Network(object):
             recNum_pre = round(float(float(m_pre.group(1)) / 1024), 2)
             time.sleep(0.5)
             output_final = adb.shell(cmd=cmd, deviceId=self.deviceId)
-            m_final = re.search(r'{}:\s*(\d+)\s*\d+\s*\d+\s*\d+\s*\d+\s*\d+\s*\d+\s*\d+\s*(\d+)'.format(net), output_final)
+            m_final = re.search(r'{}:\s*(\d+)\s*\d+\s*\d+\s*\d+\s*\d+\s*\d+\s*\d+\s*\d+\s*(\d+)'.format(net),
+                                output_final)
             sendNum_final = round(float(float(m_final.group(2)) / 1024), 2)
             recNum_final = round(float(float(m_final.group(1)) / 1024), 2)
             sendNum = round(float(sendNum_final - sendNum_pre), 2)
@@ -409,7 +429,7 @@ class Network(object):
                     if output_pre:
                         net = phone_net
                         break
-            m = re.search(r'{}:\s*(\d+)\s*\d+\s*\d+\s*\d+\s*\d+\s*\d+\s*\d+\s*\d+\s*(\d+)'.format(net), output_pre)    
+            m = re.search(r'{}:\s*(\d+)\s*\d+\s*\d+\s*\d+\s*\d+\s*\d+\s*\d+\s*\d+\s*(\d+)'.format(net), output_pre)
             sendNum = round(float(float(m.group(2)) / 1024), 2)
             recNum = round(float(float(m.group(1)) / 1024), 2)
         except Exception as e:
@@ -419,7 +439,6 @@ class Network(object):
             else:
                 logger.exception(e)
         return sendNum, recNum
-
 
     def getiOSNet(self):
         """Get iOS upflow and downflow data"""
@@ -434,11 +453,12 @@ class Network(object):
         sendNum, recNum = self.getAndroidNet(wifi) if self.platform == Platform.Android else self.getiOSNet()
         if noLog is False:
             apm_time = datetime.datetime.now().strftime('%H:%M:%S.%f')
-            f.add_log(os.path.join(f.report_dir,'upflow.log'), apm_time, sendNum)
-            f.add_log(os.path.join(f.report_dir,'downflow.log'), apm_time, recNum)
+            f.add_log(os.path.join(f.report_dir, 'upflow.log'), apm_time, sendNum)
+            f.add_log(os.path.join(f.report_dir, 'downflow.log'), apm_time, recNum)
         return sendNum, recNum
 
-class FPS(object):
+
+class FPS(metaclass=Singleton):
     AndroidFPS = None
 
     @classmethod
@@ -460,7 +480,7 @@ class FPS(object):
         self.surfaceview = surfaceview
         self.apm_time = datetime.datetime.now().strftime('%H:%M:%S.%f')
         self.monitors = None
-    
+
     def getAndroidFps(self, noLog=False):
         """get Android Fps, unit:HZ"""
         try:
@@ -470,9 +490,9 @@ class FPS(object):
             fps, jank, bigjank, collect_jank_time, collect_Stutter = monitors.stop()
             if noLog is False:
                 apm_time = datetime.datetime.now().strftime('%H:%M:%S.%f')
-                f.add_log(os.path.join(f.report_dir,'fps.log'), apm_time, fps)
-                f.add_log(os.path.join(f.report_dir,'jank.log'), apm_time, jank)
-                f.add_log(os.path.join(f.report_dir,'bigjank.log'), apm_time, bigjank)
+                f.add_log(os.path.join(f.report_dir, 'fps.log'), apm_time, fps)
+                f.add_log(os.path.join(f.report_dir, 'jank.log'), apm_time, jank)
+                f.add_log(os.path.join(f.report_dir, 'bigjank.log'), apm_time, bigjank)
                 f.add_log(os.path.join(f.report_dir, 'collect_jank_time.log'), apm_time, collect_jank_time)
                 f.add_log(os.path.join(f.report_dir, 'Stutter.log'), apm_time, collect_Stutter)
         except Exception as e:
@@ -480,28 +500,30 @@ class FPS(object):
             if len(d.getPid(self.deviceId, self.pkgName)) == 0:
                 logger.error('[FPS] {} : No process found'.format(self.pkgName))
             else:
-                logger.exception(e)        
+                logger.exception(e)
         return fps, jank, bigjank, collect_Stutter
-    
+
     def getiOSFps(self, noLog=False):
         """get iOS Fps"""
         apm = iosAPM(self.pkgName, self.deviceId)
         fps = int(apm.getPerformance(apm.fps))
         if noLog is False:
             apm_time = datetime.datetime.now().strftime('%H:%M:%S.%f')
-            f.add_log(os.path.join(f.report_dir,'fps.log'), apm_time, fps)
+            f.add_log(os.path.join(f.report_dir, 'fps.log'), apm_time, fps)
         return fps, 0
 
     def getFPS(self, noLog=False):
         """get fps、jank、bigjank"""
-        fps, jank, bigjank, collect_Stutter = self.getAndroidFps(noLog) if self.platform == Platform.Android else self.getiOSFps(noLog)
+        fps, jank, bigjank, collect_Stutter = self.getAndroidFps(
+            noLog) if self.platform == Platform.Android else self.getiOSFps(noLog)
         return fps, jank, bigjank, collect_Stutter
 
     @classmethod
     def clear_up_first_time(cls):
         FPSMonitor.clear_up_first_time()
 
-class GPU(object):
+
+class GPU(metaclass=Singleton):
     def __init__(self, pkgName, deviceId, platform=Platform.Android):
         self.pkgName = pkgName
         self.deviceId = deviceId
@@ -514,13 +536,12 @@ class GPU(object):
             gpu = self.getIosGPU(noLog)
         return gpu
 
-
     def getIosGPU(self, noLog=False):
         apm = iosAPM(self.pkgName, self.deviceId)
         gpu = apm.getPerformance(apm.gpu)
         if noLog is False:
             apm_time = datetime.datetime.now().strftime('%H:%M:%S.%f')
-            f.add_log(os.path.join(f.report_dir,'gpu.log'), apm_time, gpu)
+            f.add_log(os.path.join(f.report_dir, 'gpu.log'), apm_time, gpu)
         return gpu
 
     def getAndroidGPU(self, noLog=False):
@@ -538,7 +559,7 @@ class GPU(object):
                     gpu_info = round(int(res_n[0]) / int(res_n[1]) * 100, 2)
                 except:
                     gpu_info = 0
-                logger.info("获取到的gpu信息是：{}".format(gpu_info))
+                # logger.info("获取到的gpu信息是：{}".format(gpu_info))
             else:
                 cmd = "su -c cat /sys/class/kgsl/kgsl-3d0/gpubusy"
                 gpu_info = adb.new_shell(cmd=cmd)
@@ -553,10 +574,10 @@ class GPU(object):
                         gpu_info = round(int(res_n[0]) / int(res_n[1]) * 100, 2)
                     except:
                         gpu_info = 0
-                    logger.info("获取到的gpu信息是：{}".format(gpu_info))
+                    # logger.info("获取到的gpu信息是：{}".format(gpu_info))
         except Exception as e:
             gpu_info = 1
-            logger.info("获取到的gpu信息是：{}".format(e))
+            # logger.info("获取到的gpu信息是：{}".format(e))
         if noLog is False:
             apm_time = datetime.datetime.now().strftime('%H:%M:%S.%f')
             # logger.info("获取到的gpu信息是：{}".format(gpu_info))
@@ -566,7 +587,7 @@ class GPU(object):
         return round(gpu_info, 2)
 
 
-class iosAPM(object):
+class iosAPM(metaclass=Singleton):
 
     def __init__(self, pkgName, deviceId):
         self.pkgName = pkgName
@@ -602,6 +623,7 @@ class iosAPM(object):
             perf_value = perf.start(self.pkgName, callback=self.callback)
         return perf_value
 
+
 class initPerformanceService(object):
     CONFIG_DIR = os.path.dirname(os.path.realpath(__file__))
     CONIFG_PATH = os.path.join(CONFIG_DIR, 'config.json')
@@ -611,7 +633,7 @@ class initPerformanceService(object):
         config_json = open(file=cls.CONIFG_PATH, mode='r').read()
         run_switch = json.loads(config_json).get('run_switch')
         return run_switch
-    
+
     @classmethod
     def start(cls):
         config_json = dict()
@@ -624,9 +646,10 @@ class initPerformanceService(object):
         config_json = dict()
         config_json['run_switch'] = 'off'
         with open(cls.CONIFG_PATH, "w") as file:
-            json.dump(config_json, file) 
-        logger.info('stop solox success')    
-        return True           
+            json.dump(config_json, file)
+        logger.info('stop solox success')
+        return True
+
 
 class AppPerformanceMonitor(initPerformanceService):
     """for python api"""
@@ -685,7 +708,7 @@ class AppPerformanceMonitor(initPerformanceService):
             if self.duration > 0 and time.time() > self.end_time:
                 break
         return result
-    
+
     def collectMemoryDetail(self):
         _memory = Memory(self.pkgName, self.deviceId, self.platform, pid=self.pid)
         result = {}
@@ -699,7 +722,7 @@ class AppPerformanceMonitor(initPerformanceService):
             if self.duration > 0 and time.time() > self.end_time:
                 break
         return result
-    
+
     def collectBattery(self):
         _battery = Battery(self.deviceId, self.platform)
         result = {}
@@ -723,7 +746,7 @@ class AppPerformanceMonitor(initPerformanceService):
             f.record_net('pre', data[0], data[1])
         result = {}
         while self.get_status() == 'on':
-            upFlow, downFlow = _network.getNetWorkData(wifi=wifi,noLog=self.noLog)
+            upFlow, downFlow = _network.getNetWorkData(wifi=wifi, noLog=self.noLog)
             result = {'send': upFlow, 'recv': downFlow}
             logger.info(f'network: {result}')
             if self.collect_all is False:
@@ -761,7 +784,7 @@ class AppPerformanceMonitor(initPerformanceService):
         return result
 
     def setPerfs(self):
-        match(self.platform):
+        match (self.platform):
             case Platform.Android:
                 adb.shell(cmd='dumpsys battery reset', deviceId=self.deviceId)
                 _flow = Network(self.pkgName, self.deviceId, self.platform, pid=self.pid)
@@ -772,7 +795,7 @@ class AppPerformanceMonitor(initPerformanceService):
                 scene = f.make_report(app=self.pkgName, devices=self.deviceId, corenum=corenum, duration=self.duration,
                                       video=0, platform=self.platform, model='normal')
                 print("setPerfs()" + scene)
-                summary = f._setAndroidPerfs(scene)
+                summary = f._setAndroidPerfs(scene, corenum)
                 summary_dict = {}
                 summary_dict['corenum'] = corenum
                 summary_dict['cpu_app'] = summary['cpuAppRate']
@@ -787,6 +810,10 @@ class AppPerformanceMonitor(initPerformanceService):
                 summary_dict['tem'] = summary['batteryTeml']
                 summary_dict['net_send'] = summary['flow_send']
                 summary_dict['net_recv'] = summary['flow_recv']
+                summary_dict['net_send_avg'] = summary['flow_send_avg']
+                summary_dict['net_recv_avg'] = summary['flow_recv_avg']
+                summary_dict['net_send_total'] = summary['flow_send_total']
+                summary_dict['net_recv_total'] = summary['flow_recv_total']
                 summary_dict['cpu_charts'] = f.getCpuLog(Platform.Android, scene)
                 summary_dict['cpu_freq_charts'] = f.getCpuFreqLog(Platform.Android, scene, corenum)
                 summary_dict['gpu_charts'] = f.getGpuLog(Platform.Android, scene)
@@ -849,4 +876,4 @@ class AppPerformanceMonitor(initPerformanceService):
             Scrcpy.stop_record()
             logger.exception(e)
         finally:
-            logger.info('End of testing')         
+            logger.info('End of testing')

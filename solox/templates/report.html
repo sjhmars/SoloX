@@ -319,12 +319,11 @@
         var checkLength = $("input:checkbox[name='checksId']:checked").length;
         $("input[type='checkbox']").each(function(){ 
             if($(this).prop("checked")){ 
-                var scenename = $(this).closest('tr').find('td').eq(4).text();
+                var scenename = $(this).closest('tr').find('td').eq(5).text();
                 if(scenename){
                     removeReport(scenename);
                 }
             }
-            location.reload();
         });
     }
 
@@ -343,6 +342,8 @@
             success: function (data) {
                 if(data['status'] != 1 ){
                     SwalFire('error','Delete failed',data['msg'])
+                }else {
+                    location.reload();
                 }
             }
         })
