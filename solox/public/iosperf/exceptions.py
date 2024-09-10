@@ -35,3 +35,7 @@ class ServiceError(MuxError):
 
 class MuxServiceError(ServiceError):
     pass
+
+
+class FatalError(BaseException):
+    pass
